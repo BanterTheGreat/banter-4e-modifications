@@ -46,25 +46,25 @@ export class D4Dice extends Dice {
 
 export class D6Dice extends Dice {
     constructor() {
-        super("D6", [0, 3.5, 6], [2, 3, 6]);
+        super("D6", [0, 3.5, 6], [1, 3, 6]);
     }
 }
 
 export class D8Dice extends Dice {
     constructor() {
-        super("D8", [0, 4.5, 8], [3, 4, 8]);
+        super("D8", [0, 4.5, 8], [2, 4, 8]);
     }
 }
 
 export class D10Dice extends Dice {
     constructor() {
-        super("D10", [0, 5.5, 10], [4, 5, 10]);
+        super("D10", [0, 5.5, 10], [2, 5, 10]);
     }
 }
 
 export class D12Dice extends Dice {
     constructor() {
-        super("D12", [0, 6.5, 12], [5, 6, 12]);
+        super("D12", [0, 6.5, 12], [3, 6, 12]);
     }
 }
 
@@ -85,11 +85,12 @@ export class DiceDamage {
 export function calculateAverage(diceClass) {
     // Base AC = 14 + Level
     // Assuming Level 1
-    // Hit: 55%
+    // Assuming bonus to hit = 4 + 3;
+    // Hit: 65%
     // Crit: 5%
-    // Miss: 40%
-    var missAvg = diceClass.miss * 0.40;
-    var hitAvg = diceClass.hit * 0.55;
+    // Miss: 30%
+    var missAvg = diceClass.miss * 0.30;
+    var hitAvg = diceClass.hit * 0.65;
     var critAvg = diceClass.crit * 0.05;
 
     return Math.round((missAvg + hitAvg + critAvg) * 10) / 10;
