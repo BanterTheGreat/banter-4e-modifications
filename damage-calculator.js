@@ -9,31 +9,31 @@ class Dice {
 // With Mod Classes
 export class D4DiceWithMod extends Dice {
     constructor() {
-        super("D4 With Mod", [0, 6.5, 8], [2, 8, 16]);
+        super("D4 With Mod", [0, 2.5 + 4, 8], [2, 3 + 5, 16]);
     }
 }
 
 export class D6DiceWithMod extends Dice {
     constructor() {
-        super("D6 With Mod", [0, 7.5, 10], [3, 9, 18]);
+        super("D6 With Mod", [0, 3.5 + 4, 10], [3, 4 + 5, 18]);
     }
 }
 
 export class D8DiceWithMod extends Dice {
     constructor() {
-        super("D8 With Mod", [0, 8.5, 12], [4, 10, 20]);
+        super("D8 With Mod", [0, 4.5 + 4, 12], [4, 5 + 5, 20]);
     }
 }
 
 export class D10DiceWithMod extends Dice {
     constructor() {
-        super("D10 With Mod", [0, 9.5, 14], [5, 11, 22]);
+        super("D10 With Mod", [0, 5.5 + 4, 14], [5, 6 + 5, 22]);
     }
 }
 
 export class D12DiceWithMod extends Dice {
     constructor() {
-        super("D12 With Mod", [0, 10.5, 16], [6, 12, 24]);
+        super("D12 With Mod", [0, 6.5 + 4, 16], [6, 7 + 5, 24]);
     }
 }
 
