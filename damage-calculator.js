@@ -9,62 +9,62 @@ class Dice {
 // With Mod Classes
 export class D4DiceWithMod extends Dice {
     constructor() {
-        super("D4 With Mod", [0, 2.5 + 4, 8], [2, 3 + 5, 16]);
+        super("D4 With Mod", [0, 2.5 + 4, 8], [3, 2 + 4, 8]);
     }
 }
 
 export class D6DiceWithMod extends Dice {
     constructor() {
-        super("D6 With Mod", [0, 3.5 + 4, 10], [3, 4 + 5, 18]);
+        super("D6 With Mod", [0, 3.5 + 4, 10], [3, 3 + 4, 10]);
     }
 }
 
 export class D8DiceWithMod extends Dice {
     constructor() {
-        super("D8 With Mod", [0, 4.5 + 4, 12], [4, 5 + 5, 20]);
+        super("D8 With Mod", [0, 4.5 + 4, 12], [4, 4 + 4, 12]);
     }
 }
 
 export class D10DiceWithMod extends Dice {
     constructor() {
-        super("D10 With Mod", [0, 5.5 + 4, 14], [5, 6 + 5, 22]);
+        super("D10 With Mod", [0, 5.5 + 4, 14], [4, 5 + 4, 14]);
     }
 }
 
 export class D12DiceWithMod extends Dice {
     constructor() {
-        super("D12 With Mod", [0, 6.5 + 4, 16], [6, 7 + 5, 24]);
+        super("D12 With Mod", [0, 6.5 + 4, 16], [5, 6 + 4, 16]);
     }
 }
 
 // Without Mod Classes
 export class D4Dice extends Dice {
     constructor() {
-        super("D4", [0, 2.5, 4], [1, 3, 6]);
+        super("D4", [0, 2.5, 4], [1, 2, 4]);
     }
 }
 
 export class D6Dice extends Dice {
     constructor() {
-        super("D6", [0, 3.5, 6], [2, 4, 8]);
+        super("D6", [0, 3.5, 6], [2, 3, 6]);
     }
 }
 
 export class D8Dice extends Dice {
     constructor() {
-        super("D8", [0, 4.5, 8], [3, 5, 10]);
+        super("D8", [0, 4.5, 8], [3, 4, 8]);
     }
 }
 
 export class D10Dice extends Dice {
     constructor() {
-        super("D10", [0, 5.5, 10], [4, 6, 12]);
+        super("D10", [0, 5.5, 10], [4, 5, 10]);
     }
 }
 
 export class D12Dice extends Dice {
     constructor() {
-        super("D12", [0, 6.5, 12], [5, 7, 14]);
+        super("D12", [0, 6.5, 12], [5, 6, 12]);
     }
 }
 
