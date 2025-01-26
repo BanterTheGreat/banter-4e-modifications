@@ -47,4 +47,3 @@ export class Scratchpad {
         console.error(`Without Mod Percentage: ${Math.floor(averageNewDamageWithoutMod / averageOldDamageWithoutMod * 100)}%`);
     }
 }
-
