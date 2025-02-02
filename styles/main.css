@@ -1,0 +1,65 @@
+.action--block {
+    display: flex;
+    align-items: center; /* Vertically centers items */
+    border-bottom: 1px solid black; /* Thin, sharp border */
+    padding: 4px 5px;
+    min-height: 28px; /* Uniform row height */
+}
+
+.background-remove {
+    padding: 3px 6px;
+    border-right: 1px solid black;
+    margin-right: 5px;
+    margin-left: -5px; /* Moves more left */
+    display: flex;
+    align-items: center; /* Centers icon */
+    height: 100%;
+}
+
+.background-name {
+    flex-grow: 1;
+    padding-left: 5px;
+    display: flex;
+    align-items: center; /* Centers text */
+    height: 100%;
+}
+
+.background-value {
+    min-width: 40px; /* Ensures consistent spacing */
+    padding-right: 5px;
+    border-left: 1px solid black;
+    text-align: right; /* Aligns value to the right */
+    display: flex;
+    align-items: center; /* Centers text vertically */
+    justify-content: flex-end; /* Ensures it's fully against the right wall */
+    height: 100%;
+}
+
+/* Ensuring the add button has the same border and layout */
+.add-background {
+    display: flex;
+    padding: 5px;
+    width: 100%;
+    height: 28px; /* Matching row height */
+}
+
+.title-name {
+    cursor: default; /* Removes the pointer cursor on hover */
+    text-decoration: none; /* If there are underline effects on hover, remove them */
+}
+
+/* If there's any hover effect that changes the color or appearance, override it */
+.title-name:hover {
+    color: inherit; /* Ensure the color doesn't change on hover */
+    background-color: transparent; /* Remove any background color change on hover */
+}
+
+.title-edit {
+    padding: 3px 6px;
+    border-right: 1px solid black;
+    margin-right: 5px;
+    margin-left: -5px; /* Moves more left */
+    display: flex;
+    align-items: center; /* Centers icon */
+    height: 100%;
+}

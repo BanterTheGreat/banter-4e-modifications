@@ -4,7 +4,8 @@
 	"description": "Just some changes to the DND4e system",
 	"version": "1.0.0",
 	"authors": ["Banter"],
-  	"esmodules": ["main.js", "scratchpad.js", "damage-calculator.js"],
+	"styles": ["styles/main.css"],
+	"esmodules": ["main.js", "scratchpad.js", "damage-calculator.js", "globals.js", "system-helper.js"],
 	"compatibility": {
 		"minimum": "12",
 		"verified": "12"

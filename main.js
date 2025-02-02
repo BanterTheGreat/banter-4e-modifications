@@ -1,39 +1,38 @@
-import {Scratchpad} from "./scratchpad.js";
+import {SystemHelper} from "./system-helper.js";
+import {BeaconBackgrounds} from "./beacon-backgrounds.js";
 
-Hooks.on("init", () => {
-    // Remove a lot of unnecesary status effects to reduce clutter.
-    const statusEffectsToRemove = [
-        "ammo_count",
-        "attack_down",
-        "attack_up",
-        "defUp",
-        "curse",
-        "disarmed",
-        "drunk",
-        "flying",
-        "insubstantial",
-        "mounted",
-        "sleeping",
-        "torch",
-        "oath",
-        "hunter_mark",
-        "ongoing_1",
-        "ongoing_2",
-        "ongoing_3",
-    ]
+Hooks.on("ready", () => game.BeaconBackgrounds = new BeaconBackgrounds());
+Hooks.on("init", SystemHelper.replaceConditionList)
 
-    CONFIG.statusEffects = CONFIG.statusEffects.filter(x => !statusEffectsToRemove.includes(x.id));
+Hooks.on("renderActorSheet4e", BeaconBackgrounds.replaceSkillsWithBackgrounds);
+Hooks.on("ready", BeaconBackgrounds.setInitialFlagsOnPlayerCharacters);
+Hooks.on("renderDialog", BeaconBackgrounds.overwriteAbilityDialog);
 
-    // Potentially add new status effects.
-    const newStatusEffects = [
-        // {
-        //     icon: 'systems/pf2e/icons/conditions/flat-footed.webp',
-        //     id: '4e_sc_advantage',
-        //     label: 'Grants CA',
-        // },
-    ];
+// Scratchpad.runScratchPad();
 
-    CONFIG.statusEffects = CONFIG.statusEffects.concat(newStatusEffects);
+Hooks.on("setup", () => {
+    // @ts-ignore
+    Handlebars.registerHelper('getTotalNarrativeDice', (action, burdens) => {
+        return action.rating - burdens.flatMap(x => x.actions).filter(x => x === action.label).length;
+    });
+    // @ts-ignore
+    Handlebars.registerHelper('actionsFromBurden', (burden) => {
+        return `Affects both ${burden.actions[0]} and ${burden.actions[1]}`;
+    });
+
+    // @ts-ignore
+    Handlebars.registerHelper('burdenPenalties', (burden, backgrounds) => {
+        var affectedAbility = ABILITY_SCORES.find(x => x.Shorthand === burden.ability.abilityScore)?.Name;
+        return `Affects your ${affectedAbility} non-combat rolls`;
+    });
+
+    // @ts-ignore
+    Handlebars.registerHelper('getBurdensForAction', (action, burdens) => {
+        return burdens.flatMap(x => x.actions).filter(x => x === action.label).length;
+    });
+
+    // @ts-ignore
+    Handlebars.registerHelper('isMaxBurdens', (burdens) => {
+        return burdens !== undefined ? burdens.length === 3 : true;
+    });
 });
-
-Scratchpad.runScratchPad();

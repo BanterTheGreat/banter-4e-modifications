@@ -1,0 +1,23 @@
+<b><p style="text-align: center">Title</p></b>
+
+<div class="action--block" data-background="{{title}}">
+  <a class="action-training title-edit"><i class="fa-solid fa-edit"></i></a>
+  <a class="title-name">{{title}}</a>
+</div>
+
+<br />
+
+<b><p style="text-align: center">Backgrounds</p></b>
+
+{{#each backgrounds as |background b|}}
+<div class="action--block" data-background="{{background.id}}">
+  <a class="action-training background-remove"><i class="fa-solid fa-minus"></i></a>
+  <a class="background-name">{{background.name}}</a>
+  <label class="action-mod action-total background-value rollable">+{{background.value}}</label>
+</div>
+{{/each}}
+
+<!-- Add Button -->
+<div class="add-background">
+  <a class="action-training background-add"><i class="fa-solid fa-plus"></i></a>
+</div>
