@@ -38,22 +38,23 @@ export class PlayerDefense {
         
         // We need to wipe the state as we are done with overriding the message.
         game.PlayerDefense.lastAttack = null;
-        
+
+        let htmlContent = "<hr>";
         targets.forEach(target => {
-           ChatMessage.create({
-               flavor: `<b>${attacker.name}</b> uses <b>${item.name}</b> against <b>${target.token.actor.name}</b>!`,
-               content: `<button id="rollForDefense">Defend (DC ${rollDC})</button>`,
-               flags: {
-                   playerDefense: {
-                       attackName: item.name,
-                       actorId: target.token.actor.id,
-                       defenseMod: target.defenseMod,
-                       rollDC: rollDC,
-                   }
-               }
-           }); 
+            htmlContent += `<b>${target.token.actor.name}</b> (+${target.defenseMod}) defends!`
+            htmlContent += `<button id="rollForDefense" data-actor-id="${target.token.actor.id}" data-defense-mod="${target.defenseMod}" data-roll-dc="${rollDC}">Roll! (DC ${rollDC})</button>`;
+            htmlContent += `<hr>`;
         });
         
+       ChatMessage.create({
+           flavor: `<b>${attacker.name}</b> uses <b>${item.name}</b>!`,
+           content: htmlContent,
+           flags: {
+               playerDefense: {
+                   attackName: item.name,
+               }
+           }
+       });
         // Cancel the OG message & roll from displaying.
         return false;
     }
@@ -85,19 +86,22 @@ export class PlayerDefense {
     }
 
     static async onClickDefendButton(message, html, socket) {
-        html.find("button#rollForDefense")
-            .on("click", async (evt) => {
+        const button = html.find("button#rollForDefense");
+            button.on("click", async (evt) => {
                 evt.preventDefault();
-                console.error("Clicked!");
-                await this.defend(message, socket);
+                await this.defend(
+                    message,
+                    button[0].attributes["data-actor-id"]?.nodeValue,
+                    button[0].attributes["data-defense-mod"]?.nodeValue,
+                    button[0].attributes["data-roll-dc"]?.nodeValue,
+                    socket);
             });
     }
     
-    static async defend(message, socket) {
+    static async defend(message, actorId, defenseMod, rollDC, socket) {
         const flags = message.flags.playerDefense;
-        const actor = game.actors.find(x => x.id === flags.actorId);
-        const defenseMod = flags.defenseMod;
-        const rollDC = flags.rollDC;
+        const actor = game.actors.find(x => x.id === actorId);
+        console.error(actor);
         
         const defenseRoll = new Roll(`1d20 + ${defenseMod}`);
         defenseRoll.propagateFlavor("Whacka Whacka");
