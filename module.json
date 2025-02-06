@@ -6,6 +6,7 @@
 	"authors": ["Banter"],
 	"styles": ["styles/main.css"],
 	"esmodules": ["main.js", "scratchpad.js", "damage-calculator.js", "globals.js", "system-helper.js"],
+	"socket": true,
 	"compatibility": {
 		"minimum": "12",
 		"verified": "12"

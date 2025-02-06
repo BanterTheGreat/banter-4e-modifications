@@ -1,38 +1,30 @@
 import {SystemHelper} from "./system-helper.js";
 import {BeaconBackgrounds} from "./beacon-backgrounds.js";
+import {PlayerDefense} from "./player-defense.js";
+import {SocketHelper} from "./socket-helper.js";
+
+const socketHelper = new SocketHelper();
+let socket;
+
+//SocketLib; Required for editing chat messages as users for rolls.
+Hooks.once("socketlib.ready", () => {
+    socket = socketlib.registerModule("banter-4e-modifications");
+    socket.register("deleteMessage", SocketHelper.deleteMessage);
+    socket.register("updateMessage", SocketHelper.updateMessage);
+});
 
 Hooks.on("ready", () => game.BeaconBackgrounds = new BeaconBackgrounds());
+Hooks.on("ready", () => game.PlayerDefense = new PlayerDefense());
+
 Hooks.on("init", SystemHelper.replaceConditionList)
 
 Hooks.on("renderActorSheet4e", BeaconBackgrounds.replaceSkillsWithBackgrounds);
 Hooks.on("ready", BeaconBackgrounds.setInitialFlagsOnPlayerCharacters);
 Hooks.on("renderDialog", BeaconBackgrounds.overwriteAbilityDialog);
 
+Hooks.on("dnd4e.rollAttack", PlayerDefense.OnRollAttack);
+Hooks.on("preCreateChatMessage", PlayerDefense.OnPowerChatMessage);
+Hooks.on("renderChatMessage", (message, html) => PlayerDefense.onClickDefendButton(message, html, socket));
+
 // Scratchpad.runScratchPad();
 
-Hooks.on("setup", () => {
-    // @ts-ignore
-    Handlebars.registerHelper('getTotalNarrativeDice', (action, burdens) => {
-        return action.rating - burdens.flatMap(x => x.actions).filter(x => x === action.label).length;
-    });
-    // @ts-ignore
-    Handlebars.registerHelper('actionsFromBurden', (burden) => {
-        return `Affects both ${burden.actions[0]} and ${burden.actions[1]}`;
-    });
-
-    // @ts-ignore
-    Handlebars.registerHelper('burdenPenalties', (burden, backgrounds) => {
-        var affectedAbility = ABILITY_SCORES.find(x => x.Shorthand === burden.ability.abilityScore)?.Name;
-        return `Affects your ${affectedAbility} non-combat rolls`;
-    });
-
-    // @ts-ignore
-    Handlebars.registerHelper('getBurdensForAction', (action, burdens) => {
-        return burdens.flatMap(x => x.actions).filter(x => x === action.label).length;
-    });
-
-    // @ts-ignore
-    Handlebars.registerHelper('isMaxBurdens', (burdens) => {
-        return burdens !== undefined ? burdens.length === 3 : true;
-    });
-});
