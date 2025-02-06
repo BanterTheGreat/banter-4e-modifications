@@ -91,8 +91,6 @@ export class PlayerDefense {
                 console.error("Clicked!");
                 await this.defend(message, socket);
             });
-        console.error(message);
-        console.error(html.find("button#rollForDefense"));
     }
     
     static async defend(message, socket) {
@@ -105,7 +103,9 @@ export class PlayerDefense {
         defenseRoll.propagateFlavor("Whacka Whacka");
         
         let roll = await defenseRoll.evaluate();
-        const rollHtml = `<hr>
+        const diceResult = roll.terms[0].total;
+        const totalResult = roll.total;
+        const rollHtml = `
               <pg>${await roll.render()}</pg>
             `;
         
@@ -118,8 +118,21 @@ export class PlayerDefense {
             await socket.executeAsGM("updateMessage", message.id, {...message, content: newContent});
             await game.dice3d.showForRoll(roll, game.user, true);
         }
+        
+        let resultHtml = "<hr>";
+        
+        if (diceResult === 1) {
+            resultHtml += "<b><a style='color: darkred'>The enemy critically hit!</a></b>"
+        } else if (totalResult < rollDC) {
+            resultHtml += "<b><a style='color: red'>The enemy hit!</a></b"
+        } else if (diceResult === 20) {
+            resultHtml += "<b><a style='color: darkgreen'>The enemy critically missed!</a></b"
+        } else {
+            resultHtml += "<b><a style='color: green'>The enemy missed!</a></b";
+        }
 
-        newContent = '<button id="rollForDefense">Reroll</button>';
+        newContent = `<button id="rollForDefense">Reroll (DC ${rollDC})</button>`;
+        newContent += resultHtml;
         newContent += rollHtml;
         await socket.executeAsGM("updateMessage", message.id, {...message, content: newContent});
     }
