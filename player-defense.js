@@ -140,21 +140,7 @@ export class PlayerDefense {
             resultHtml += "<b><a style='color: green'>The enemy missed!</a></b";
         }
 
-        let latestMessage = game.messages.get(message.id);
         let rollContent = resultHtml + rollHtml;
-        let newContent = latestMessage.content
-            .replace(`<button id="rollForDefense" data-defense-mod="${defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${actorId}" disabled>Roll! (DC ${rollDC})</button>`, rollContent)
-        
-        if (Date.now() < game.PlayerDefense.lastUpdate + 250) {
-            const differenceInTime = Date.now() - game.PlayerDefense.lastUpdate + 250;
-            console.error("We are updated real quick after the last time, lets wait a bit longer for the first update to pass.");
-            await new Promise(resolve => setTimeout(resolve, differenceInTime)); // Small delay to avoid race conditions
-            latestMessage = game.messages.get(message.id);
-            rollContent = resultHtml + rollHtml;
-            newContent = latestMessage.content
-                .replace(`<button id="rollForDefense" data-defense-mod="${defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${actorId}" disabled>Roll! (DC ${rollDC})</button>`, rollContent)
-        }
-        game.PlayerDefense.lastUpdate = Date.now();
-        await socket.executeAsGM("updateMessage", message.id, (message) => message.content.replace(`<button id="rollForDefense" data-defense-mod="${defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${actorId}" disabled>Roll! (DC ${rollDC})</button>`, rollContent));
+        await socket.executeAsGM("updateMessageContentWithDelay", message.id, actorId, (message) => message.content.replace(`<button id="rollForDefense" data-defense-mod="${defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${actorId}" disabled>Roll! (DC ${rollDC})</button>`, rollContent));
     }
 }

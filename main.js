@@ -10,6 +10,7 @@ Hooks.once("socketlib.ready", () => {
     socket = socketlib.registerModule("banter-4e-modifications");
     socket.register("deleteMessage", SocketHelper.deleteMessage);
     socket.register("updateMessage", SocketHelper.updateMessage);
+    socket.register("updateMessageContentWithDelay", SocketHelper.updateMessageContentWithDelay);
 });
 
 Hooks.on("ready", () => game.BeaconBackgrounds = new BeaconBackgrounds());
