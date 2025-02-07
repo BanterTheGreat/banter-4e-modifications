@@ -115,7 +115,8 @@ export class PlayerDefense {
         }
         
         const defenseRoll = new Roll(`1d20 + ${defenseMod}`);
-        
+        defenseRoll.propagateFlavor(`DC ${rollDC}`);
+
         let roll = await defenseRoll.evaluate();
         const diceResult = roll.terms[0].total;
         const totalResult = roll.total;
