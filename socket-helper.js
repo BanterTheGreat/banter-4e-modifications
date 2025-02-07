@@ -22,9 +22,6 @@ export class SocketHelper {
 
     // Delayed to make sure we don't overwrite changes if we back to back update a message through multiple clients.
     static async updateMessageContentWithDelay(id, textToReplace, replacementText) {
-        console.error(id);
-        console.error(textToReplace);
-        console.error(replacementText);
         game.SocketHelper.updateQueue = game.SocketHelper.updateQueue.then(async () => {
             console.error("Executing safely...");
             // Simulate an async operation
