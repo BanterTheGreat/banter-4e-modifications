@@ -1,7 +1,9 @@
-// EVERYTHING HERE SHOULD ONLY BE CALLED ON THE GM'S COMPUTER TO KEEP STATES IN SYNC.
+// EVERYTHING HERE SHOULD ONLY BE CALLED ON THE GM'S INSTANCE USING SOCKETLIB.
 export class SocketHelper {
     lastUpdate = 0;
     triggeringActor = "";
+    updateQueue = Promise.resolve();
+    
 
     // SocketLib helpscripts. Only used by GMs
     static async deleteMessage(id) {
@@ -19,33 +21,19 @@ export class SocketHelper {
     }
 
     // Delayed to make sure we don't overwrite changes if we back to back update a message through multiple clients.
-    static async updateMessageContentWithDelay(id, actorId, messageContentUpdate) {
-        game.SocketHelper.triggeringActor = actorId;
-        game.SocketHelper.lastUpdate = Date.now();
-        
-        await game.SocketHelper.DelayIfNeccessary(actorId);
-
-        game.SocketHelper.triggeringActor = actorId;
-        game.SocketHelper.lastUpdate = Date.now();
-
-        console.error(`Updated Time: ${Date.now()}`);
-        console.error(`Updated Actor: ${actorId}`);
-
-        const message = game.messages.get(id);
-        if (message) {
-            const newMessage = messageContentUpdate(message);
-            await message.update({...message, content: newMessage});
-        }
-    }
-    
-    async DelayIfNeccessary(actorId) {
-        if (game.SocketHelper.triggeringActor !== actorId) {
-            console.error("We arrived here real quick after last time. Lets wait a bit.")
-            const differenceInTime = game.SocketHelper.lastUpdate + 500 - Date.now();
-            console.error(differenceInTime);
-            await new Promise(resolve => setTimeout(resolve, differenceInTime)); // Small delay to avoid race conditions
-            console.error("We have waited!")
-            await game.SocketHelper.DelayIfNeccessary();
-        }
+    static async updateMessageContentWithDelay(id, textToReplace, replacementText) {
+        console.error(id);
+        console.error(textToReplace);
+        console.error(replacementText);
+        game.SocketHelper.updateQueue = game.SocketHelper.updateQueue.then(async () => {
+            console.error("Executing safely...");
+            // Simulate an async operation
+            const message = game.messages.get(id);
+            if (message) {
+                const newMessageContent = message.content.replace(textToReplace, replacementText);
+                await message.update({...message, content: newMessageContent});
+            } // Simulate delay
+            console.error("Execution finished!");
+        });
     }
 }

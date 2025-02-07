@@ -108,6 +108,11 @@ export class PlayerDefense {
     static async defend(message, actorId, defenseMod, rollDC, socket) {
         const flags = message.flags.playerDefense;
         const actor = game.actors.find(x => x.id === actorId);
+
+        if (!game.user.isGM && !actor.isOwner) {
+            ui.notifications.warn("Can't roll for someone you dont control!")
+            return;
+        }
         
         const defenseRoll = new Roll(`1d20 + ${defenseMod}`);
         
@@ -141,6 +146,7 @@ export class PlayerDefense {
         }
 
         let rollContent = resultHtml + rollHtml;
-        await socket.executeAsGM("updateMessageContentWithDelay", message.id, actorId, (message) => message.content.replace(`<button id="rollForDefense" data-defense-mod="${defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${actorId}" disabled>Roll! (DC ${rollDC})</button>`, rollContent));
+        console.error(message.content);
+        await socket.executeAsGM("updateMessageContentWithDelay", message.id, `<button id="rollForDefense" data-defense-mod="${defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${actorId}" disabled>Roll! (DC ${rollDC})</button>`, rollContent);
     }
 }
