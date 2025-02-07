@@ -3,7 +3,6 @@ import {BeaconBackgrounds} from "./beacon-backgrounds.js";
 import {PlayerDefense} from "./player-defense.js";
 import {SocketHelper} from "./socket-helper.js";
 
-const socketHelper = new SocketHelper();
 let socket;
 
 //SocketLib; Required for editing chat messages as users for rolls.
@@ -14,6 +13,7 @@ Hooks.once("socketlib.ready", () => {
 });
 
 Hooks.on("ready", () => game.BeaconBackgrounds = new BeaconBackgrounds());
+Hooks.on("ready", () => game.SocketHelper = new SocketHelper());
 Hooks.on("ready", () => game.PlayerDefense = new PlayerDefense());
 
 Hooks.on("init", SystemHelper.replaceConditionList)

@@ -5,6 +5,8 @@ export class PlayerDefense {
         attacker: null,
     }
     
+    lastUpdate = 0;
+    
     // So, the idea.
     // Whenever you use the attack option with an ability the first hook triggers and sets the Power.
     // The next message which contains the name of the item in its flavor & has attack rolls, probably is the OG attack roll.
@@ -41,8 +43,8 @@ export class PlayerDefense {
 
         let htmlContent = "<hr>";
         targets.forEach(target => {
-            htmlContent += `<b>${target.token.actor.name}</b> (+${target.defenseMod}) defends!`
-            htmlContent += `<button id="rollForDefense" data-actor-id="${target.token.actor.id}" data-defense-mod="${target.defenseMod}" data-roll-dc="${rollDC}">Roll! (DC ${rollDC})</button>`;
+            htmlContent += `<b>${target.token.actor.name} (+${target.defenseMod}) defends!</b>`
+            htmlContent += `<button id="rollForDefense" data-defense-mod="${target.defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${target.token.actor.id}">Roll! (DC ${rollDC})</button>`;
             htmlContent += `<hr>`;
         });
         
@@ -86,25 +88,28 @@ export class PlayerDefense {
     }
 
     static async onClickDefendButton(message, html, socket) {
-        const button = html.find("button#rollForDefense");
-            button.on("click", async (evt) => {
-                evt.preventDefault();
+        const buttons = html.find("button#rollForDefense");
+        buttons.each((index, button) => {
+            button.addEventListener('click', async () => {
+                const actorId = button.dataset.actorId; // Use dataset instead of jQuery .data()
+                const defenseMod = button.dataset.defenseMod; // Use dataset instead of jQuery .data()
+                const rollDc = button.dataset.rollDc; // Use dataset instead of jQuery .data()
+                
                 await this.defend(
                     message,
-                    button[0].attributes["data-actor-id"]?.nodeValue,
-                    button[0].attributes["data-defense-mod"]?.nodeValue,
-                    button[0].attributes["data-roll-dc"]?.nodeValue,
+                    actorId,
+                    defenseMod,
+                    rollDc,
                     socket);
             });
+        });
     }
     
     static async defend(message, actorId, defenseMod, rollDC, socket) {
         const flags = message.flags.playerDefense;
         const actor = game.actors.find(x => x.id === actorId);
-        console.error(actor);
         
         const defenseRoll = new Roll(`1d20 + ${defenseMod}`);
-        defenseRoll.propagateFlavor("Whacka Whacka");
         
         let roll = await defenseRoll.evaluate();
         const diceResult = roll.terms[0].total;
@@ -113,13 +118,13 @@ export class PlayerDefense {
               <pg>${await roll.render()}</pg>
             `;
         
-        let newContent = message.content
-            .replace(`rollForDefense">`, `rollForDefense" disabled>`);
+        let contentWithDisabledButton = message.content
+            .replace(`data-actor-id="${actorId}">`, `data-actor-id="${actorId}" disabled>`);
         
         // Manually call Dice so Nice, as it doesn't trigger the way we edit the message.
         if (game.dice3d) {
             // Immediately disable the button when Dice so Nice starts, to prevent people mashing.
-            await socket.executeAsGM("updateMessage", message.id, {...message, content: newContent});
+            await socket.executeAsGM("updateMessage", message.id, {...message, content: contentWithDisabledButton});
             await game.dice3d.showForRoll(roll, game.user, true);
         }
         
@@ -135,9 +140,21 @@ export class PlayerDefense {
             resultHtml += "<b><a style='color: green'>The enemy missed!</a></b";
         }
 
-        newContent = `<button id="rollForDefense">Reroll (DC ${rollDC})</button>`;
-        newContent += resultHtml;
-        newContent += rollHtml;
-        await socket.executeAsGM("updateMessage", message.id, {...message, content: newContent});
+        let latestMessage = game.messages.get(message.id);
+        let rollContent = resultHtml + rollHtml;
+        let newContent = latestMessage.content
+            .replace(`<button id="rollForDefense" data-defense-mod="${defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${actorId}" disabled>Roll! (DC ${rollDC})</button>`, rollContent)
+        
+        if (Date.now() < game.PlayerDefense.lastUpdate + 250) {
+            const differenceInTime = Date.now() - game.PlayerDefense.lastUpdate + 250;
+            console.error("We are updated real quick after the last time, lets wait a bit longer for the first update to pass.");
+            await new Promise(resolve => setTimeout(resolve, differenceInTime)); // Small delay to avoid race conditions
+            latestMessage = game.messages.get(message.id);
+            rollContent = resultHtml + rollHtml;
+            newContent = latestMessage.content
+                .replace(`<button id="rollForDefense" data-defense-mod="${defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${actorId}" disabled>Roll! (DC ${rollDC})</button>`, rollContent)
+        }
+        game.PlayerDefense.lastUpdate = Date.now();
+        await socket.executeAsGM("updateMessage", message.id, (message) => message.content.replace(`<button id="rollForDefense" data-defense-mod="${defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${actorId}" disabled>Roll! (DC ${rollDC})</button>`, rollContent));
     }
 }
