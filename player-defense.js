@@ -24,12 +24,18 @@ export class PlayerDefense {
         }
 
         const rollFormula = message.rolls[0].formula;
-        const rollModifiers = rollFormula.match(/\((\d+)\)/g);
+        console.error(rollFormula);
+        const rollModifiers = rollFormula
+            .replace(/\d+d\d+/g, '') // Remove dice rolls like "1d20", "2d6"
+            .match(/[-+]?\d+/g) // Match standalone numbers (modifiers)
+            ?.map(Number) || []; // Convert to numbers and return an empty array if null
+        
+        console.error(rollModifiers);
         if (rollModifiers.length === 0) {
             ui.notifications.warn("Couldn't find modifiers of attack roll?");
         }
         
-        let totalModifier = rollModifiers.reduce((sum, match) => sum + parseInt(match.replace(/\(|\)/g, ""), 10), 0);
+        let totalModifier = rollModifiers.reduce((sum, num) => sum + num, 0); // Sum all modifiers
         
         // We add the +2 because of dice math.
         const rollDC = 10 + totalModifier + 2;
@@ -89,20 +95,30 @@ export class PlayerDefense {
 
     static async onClickDefendButton(message, html, socket) {
         const buttons = html.find("button#rollForDefense");
-        buttons.each((index, button) => {
-            button.addEventListener('click', async () => {
-                const actorId = button.dataset.actorId; // Use dataset instead of jQuery .data()
-                const defenseMod = button.dataset.defenseMod; // Use dataset instead of jQuery .data()
-                const rollDc = button.dataset.rollDc; // Use dataset instead of jQuery .data()
-                
-                await this.defend(
-                    message,
-                    actorId,
-                    defenseMod,
-                    rollDc,
-                    socket);
+        
+        if (buttons.length === 0) {
+            return;
+        }
+
+        // We wait for other modules to change the HTML first, in order to prevent them from overwriting our changes.
+        // Specifically, Fox's 4e Styling.
+        setTimeout(() => {
+            const buttons = html.find("button#rollForDefense");
+            buttons.each((index, button) => {
+                button.addEventListener('click', async () => {
+                    const actorId = button.dataset.actorId; // Use dataset instead of jQuery .data()
+                    const defenseMod = button.dataset.defenseMod; // Use dataset instead of jQuery .data()
+                    const rollDc = button.dataset.rollDc; // Use dataset instead of jQuery .data()
+
+                    await this.defend(
+                        message,
+                        actorId,
+                        defenseMod,
+                        rollDc,
+                        socket);
+                });
             });
-        });
+        }, 50);
     }
     
     static async defend(message, actorId, defenseMod, rollDC, socket) {
