@@ -5,8 +5,6 @@ export class PlayerDefense {
         attacker: null,
     }
     
-    lastUpdate = 0;
-    
     // So, the idea.
     // Whenever you use the attack option with an ability the first hook triggers and sets the Power.
     // The next message which contains the name of the item in its flavor & has attack rolls, probably is the OG attack roll.
@@ -24,13 +22,11 @@ export class PlayerDefense {
         }
 
         const rollFormula = message.rolls[0].formula;
-        console.error(rollFormula);
         const rollModifiers = rollFormula
             .replace(/\d+d\d+/g, '') // Remove dice rolls like "1d20", "2d6"
             .match(/[-+]?\d+/g) // Match standalone numbers (modifiers)
             ?.map(Number) || []; // Convert to numbers and return an empty array if null
         
-        console.error(rollModifiers);
         if (rollModifiers.length === 0) {
             ui.notifications.warn("Couldn't find modifiers of attack roll?");
         }
@@ -47,11 +43,13 @@ export class PlayerDefense {
         // We need to wipe the state as we are done with overriding the message.
         game.PlayerDefense.lastAttack = null;
 
-        let htmlContent = "<hr>";
+        let htmlContent = "";
         targets.forEach(target => {
-            htmlContent += `<b>${target.token.actor.name} (+${target.defenseMod}) defends!</b>`
-            htmlContent += `<button id="rollForDefense" data-defense-mod="${target.defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${target.token.actor.id}">Roll! (DC ${rollDC})</button>`;
-            htmlContent += `<hr>`;
+            htmlContent += `<div class="target">`
+            htmlContent += `<span>${target.token.actor.name} (+${target.defenseMod}) defends!</span>`
+            htmlContent += `<div>`
+            htmlContent += `<button style="margin-bottom:10px" id="rollForDefense" data-defense-mod="${target.defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${target.token.actor.id}">Roll! (DC ${rollDC})</button>`;
+            htmlContent += targets.length > 1 ? `<br />` : ``;
         });
         
        ChatMessage.create({
@@ -150,7 +148,7 @@ export class PlayerDefense {
             await game.dice3d.showForRoll(roll, game.user, true);
         }
         
-        let resultHtml = "<hr>";
+        let resultHtml = "";
         
         if (diceResult === 1) {
             resultHtml += "<b><a style='color: darkred'>The enemy critically hit!</a></b>"
@@ -162,8 +160,7 @@ export class PlayerDefense {
             resultHtml += "<b><a style='color: green'>The enemy missed!</a></b";
         }
 
-        let rollContent = resultHtml + rollHtml;
-        console.error(message.content);
-        await socket.executeAsGM("updateMessageContentWithDelay", message.id, `<button id="rollForDefense" data-defense-mod="${defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${actorId}" disabled>Roll! (DC ${rollDC})</button>`, rollContent);
+        let rollContent = resultHtml + rollHtml + "<hr>";
+        await socket.executeAsGM("updateMessageContentWithDelay", message.id, `<button style="margin-bottom:10px" id="rollForDefense" data-defense-mod="${defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${actorId}" disabled>Roll! (DC ${rollDC})</button>`, rollContent);
     }
 }
