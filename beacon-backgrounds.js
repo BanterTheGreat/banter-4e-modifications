@@ -18,7 +18,7 @@ export class BeaconBackgrounds {
         narrativeFlags.backgrounds = narrativeFlags.backgrounds.sort((x, y) => x.name.localeCompare(y.name));
 
         // Get the section.
-         const skillsSection = html.find(".section--skills");
+         const skillsSection = html.find("section.section.skills");
 
          // Parse the html & handlebars.
          const iconActions = await renderTemplate("modules/banter-4e-modifications/templates/background-skills/background-skills.html", narrativeFlags);

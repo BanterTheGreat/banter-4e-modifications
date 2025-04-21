@@ -1,21 +1,36 @@
-<b><p style="text-align: center">Title</p></b>
+<h3>Titles and Backgrounds</h3>
 
-<div class="action--block" data-background="{{title}}">
-  <a class="action-training title-edit"><i class="fa-solid fa-edit"></i></a>
-  <a class="title-name">{{title}}</a>
-</div>
+<section class="title infobox">
+  <h3 class="box-title">
+    Title
+  </h3>
+  
+  <ul class="traits-list">
+    <li class="tag action-training title-edit rollable">{{title}} <i class="fa-solid fa-edit"></i></li>
+  </ul>
+</section>
 
-<br />
+<table class="skills" style="width: 250px;">
+  <thead>
+  <tr class="skills-header">
+    <th class="background-name">Name</th>
+    <th class="background-value">Value</th>
+    <th class="background-delete">x</th>
+  </tr>
+  </thead>
 
-<b><p style="text-align: center">Backgrounds</p></b>
-
-{{#each backgrounds as |background b|}}
-<div class="action--block" data-background="{{background.id}}">
-  <a class="action-training background-remove"><i class="fa-solid fa-minus"></i></a>
-  <a class="background-name">{{background.name}}</a>
-  <label class="action-mod action-total background-value rollable">+{{background.value}}</label>
-</div>
-{{/each}}
+  <tbody>
+  
+  {{#each backgrounds as |background b|}}
+  <tr data-background="{{background.id}}">
+    <td style="width: auto"><h4>{{background.name}}</h4></td>
+    <td style="width: 10%" class="background-value rollable">{{background.value}}</td>
+    <td style="width: 10%" class="background-remove"><i class="fa-solid fa-minus rollable"></i></td>
+  </tr>
+  {{/each}}
+  
+  </tbody>
+</table>
 
 <!-- Add Button -->
 <div class="add-background">
