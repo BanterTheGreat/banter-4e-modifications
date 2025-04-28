@@ -151,13 +151,13 @@ export class PlayerDefense {
         let resultHtml = "";
         
         if (diceResult === 1) {
-            resultHtml += "<b><a style='color: darkred'>The enemy critically hit!</a></b>"
+            resultHtml += `<b><a style='color: darkred'>The enemy critically hit! (DC ${rollDC})</a></b>`
         } else if (totalResult < rollDC) {
-            resultHtml += "<b><a style='color: red'>The enemy hit!</a></b"
+            resultHtml += `<b><a style='color: red'>The enemy hit! (DC ${rollDC})</a></b`
         } else if (diceResult === 20) {
-            resultHtml += "<b><a style='color: darkgreen'>The enemy critically missed!</a></b"
+            resultHtml += `<b><a style='color: darkgreen'>The enemy critically missed! (DC ${rollDC})</a></b`
         } else {
-            resultHtml += "<b><a style='color: green'>The enemy missed!</a></b";
+            resultHtml += `<b><a style='color: green'>The enemy missed! (DC ${rollDC})</a></b`;
         }
 
         let rollContent = resultHtml + rollHtml + "<hr>";
