@@ -20,7 +20,7 @@ export class PlayerDefense {
         if (!message.flavor.includes(game.PlayerDefense.lastAttack.item.name) || message.rolls[0] === undefined) {
             return true;
         }
-
+        
         const rollFormula = message.rolls[0].formula;
         const rollModifiers = rollFormula
             .replace(/\d+d\d+/g, '') // Remove dice rolls like "1d20", "2d6"
@@ -32,6 +32,14 @@ export class PlayerDefense {
         }
         
         let totalModifier = rollModifiers.reduce((sum, num) => sum + num, 0); // Sum all modifiers
+        
+        if (Number.isNaN(totalModifier)) {
+            ui.notifications.warn("We got a NaN as the modifier. Aborting");
+            console.log(rollFormula);
+            console.log(rollModifiers);
+            console.log(totalModifier);
+            return;
+        }
         
         // We add the +2 because of dice math.
         const rollDC = 10 + totalModifier + 2;
@@ -53,7 +61,7 @@ export class PlayerDefense {
         });
         
        ChatMessage.create({
-           flavor: `<b>${attacker.name}</b> uses <b>${item.name}</b>!`,
+           flavor: `<b>${attacker.name}</b> uses <b>${item.name}</b> VS. <b>${item.attack.def.toUpperCase()}</b>!`,
            content: htmlContent,
            flags: {
                playerDefense: {
