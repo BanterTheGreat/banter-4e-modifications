@@ -277,9 +277,11 @@ export class BeaconBackgrounds {
             titleValue = $(e.currentTarget).val();
         });
 
+        console.log(actor);
+        
         const CreateBonusFormula = () => {
             const backgroundMod = flags.backgrounds.find(x => x.id === backgroundValue)?.value ?? 0;
-            const finalFormula = `${backgroundMod} + ${titleValue ? 2 : 0}`;
+            const finalFormula = `${backgroundMod} + ${titleValue ? 2 : 0} + ${actor.system.lvhalf}`;
             return finalFormula;
         };
 
