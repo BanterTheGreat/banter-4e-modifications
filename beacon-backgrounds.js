@@ -27,42 +27,6 @@ export class BeaconBackgrounds {
         skillsSection.empty();
         skillsSection.append(iconActions);
 
-        // Add our own hooks.
-        skillsSection.find(".action-rating").on("click contextmenu", function (e) {
-            e.preventDefault();
-
-            const backgroundName = e.target.parentElement.attributes.getNamedItem("data-action").value;
-            const flags = data.actor.getFlag(MODULE_NAME, BACKGROUNDS);
-            const indexToMutate = flags.backgrounds.findIndex(x => x.name === backgroundName);
-
-            if (indexToMutate === -1) {
-                return;
-            }
-
-            const backgroundToMutate = flags.backgrounds[indexToMutate];
-
-            if (e.type === "click") {
-                // Can only have a rating up to 5.
-                if (backgroundToMutate.value === 5) {
-                    return;
-                }
-
-                backgroundToMutate.value = backgroundToMutate.value + 1;
-            } else if (e.type === "contextmenu") {
-                // Rating can't be negative.
-                if (backgroundToMutate.value === 0) {
-                    return;
-                }
-
-                backgroundToMutate.value = backgroundToMutate.value - 1;
-            }
-
-            data.actor.setFlag(MODULE_NAME, BACKGROUNDS, flags);
-
-            // @ts-ignore;
-            sheet._onSubmit(e);
-        });
-
         // Kill unused button.
         html.find(".custom-roll-descriptions").remove();
 
@@ -80,15 +44,6 @@ export class BeaconBackgrounds {
             e.preventDefault();
             game.BeaconBackgrounds.removeBackground(e, data);
         });
-
-        skillsSection.find(".background-value").on("click contextmenu", function (e) {
-            e.preventDefault();
-            game.BeaconBackgrounds.modifyBackgroundValue(e, data);
-
-            // @ts-ignore;
-            sheet._onSubmit(e);
-        });
-
 
         skillsSection.find(".narrative-resources-effort").on("click contextmenu", function(e) {
             e.preventDefault();
@@ -262,33 +217,33 @@ export class BeaconBackgrounds {
         form.append(await renderTemplate("modules/banter-4e-modifications/templates/background-skills/ability-roll-dialog.html", flags));
 
         const backgroundInput = form.find('#background');
-        let backgroundValue;
+        let selectedBackgroundId;
         
         backgroundInput.on("change", function(e) {
             e.preventDefault();
-            backgroundValue = Number($(e.currentTarget).val());
+            selectedBackgroundId = Number($(e.currentTarget).val());
         });
 
         const titleInput = form.find('#titleSelect');
-        let titleValue;
+        let hasTitle;
 
         titleInput.on("change", function(e) {
             e.preventDefault();
-            titleValue = $(e.currentTarget).val();
+            hasTitle = $(e.currentTarget).val();
         });
 
         console.log(actor);
         
         const CreateBonusFormula = () => {
-            const backgroundMod = flags.backgrounds.find(x => x.id === backgroundValue)?.value ?? 0;
-            const finalFormula = `${backgroundMod} + ${titleValue ? 2 : 0} + ${actor.system.lvhalf}`;
+            const backgroundMod = flags.backgrounds.find(x => x.id === selectedBackgroundId) != undefined ? 2 : 0;
+            const finalFormula = `${backgroundMod} + ${actor.system.lvhalf}`;
             return finalFormula;
         };
 
         const CreateFlavorText = () => {
-            const backgroundName = flags.backgrounds.find(x => x.id === backgroundValue)?.name;
+            const backgroundName = flags.backgrounds.find(x => x.id === selectedBackgroundId)?.name;
             const backgroundFlavorText = backgroundName !== undefined ? ` using their experience as a ${backgroundName}` : '';
-            const titleFlavorText = titleValue ? ` furthering their title as ${titleValue}` : "";
+            const titleFlavorText = hasTitle ? ` furthering their title as ${hasTitle}` : "";
             let flavorString = "";
             flavorString = `${actor.name} rolls ${abilityName}` + backgroundFlavorText + titleFlavorText;
 
@@ -297,7 +252,7 @@ export class BeaconBackgrounds {
 
         html.find(".dialog-button").off("click").on("click", async function(event) {
             event.preventDefault(); // Prevents any default action
-            const formula = `1d20 + ${Math.floor(abilityMod / 2)} + ${CreateBonusFormula()}`;
+            const formula = `1d20 + ${abilityMod} + ${CreateBonusFormula()}`;
             const roll = await new Roll(formula).evaluate({ async: true });
             roll.toMessage({
                 flavor: CreateFlavorText(),
@@ -425,27 +380,5 @@ export class BeaconBackgrounds {
         // Triggered when clicking on the add burden button.
         // Open a model here to configure burden.
         console.log("Removed Background?");
-    }
-
-     modifyBackgroundValue(e, data) {
-         const backgroundId = Number(e.currentTarget.parentElement.attributes.getNamedItem("data-background").value);
-         const flags = data.actor.getFlag(MODULE_NAME, BACKGROUNDS);
-
-
-         if (e.type === "click") {
-            if (flags.backgrounds.find(x => x.id === backgroundId).value === 5) {
-                return;
-            }
-
-            flags.backgrounds.find(x => x.id === backgroundId).value++;
-        } else if (e.type === "contextmenu") {
-            if (flags.backgrounds.find(x => x.id === backgroundId).value === 0) {
-                return;
-            }
-
-            flags.backgrounds.find(x => x.id === backgroundId).value--;
-        }
-
-        data.actor.setFlag(MODULE_NAME, BACKGROUNDS, flags);
     }
 }
