@@ -14,10 +14,10 @@
     {{#each backgrounds as |background b|}}
     <tr data-background="{{background.id}}">
       <td style="width: auto">
-        <h4>{{background.name}}</h4>
+        {{background.name}}
       </td>
       <td style="width: 10%"
-          class="background-remove"><i class="fa-solid fa-minus rollable"></i></td>
+          class="background-remove"><a><i class="fa-solid fa-minus rollable"></i></a></td>
     </tr>
     {{/each}}
 
