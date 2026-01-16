@@ -21,7 +21,7 @@ Hooks.on("init", SystemHelper.replaceConditionList)
 
 Hooks.on("renderActorSheet4e", BeaconBackgrounds.replaceSkillsWithBackgrounds);
 Hooks.on("ready", BeaconBackgrounds.setInitialFlagsOnPlayerCharacters);
-Hooks.on("renderDialog", BeaconBackgrounds.overwriteAbilityDialog);
+Hooks.on("renderRollDialog", BeaconBackgrounds.overwriteAbilityDialog);
 
 Hooks.on("dnd4e.rollAttack", PlayerDefense.OnRollAttack);
 Hooks.on("preCreateChatMessage", PlayerDefense.OnPowerChatMessage);

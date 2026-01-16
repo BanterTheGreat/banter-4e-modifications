@@ -79,15 +79,19 @@ export class BeaconBackgrounds {
   }
 
   static async overwriteAbilityDialog(dialog, html, data) {
+    console.log("Checking ability dialog overwrite conditions.");
     const titles = ["Strength Check", "Constitution Check", "Dexterity Check", "Intelligence Check", "Wisdom Check", "Charisma Check"];
     if (!titles.includes(dialog.title)) {
       return;
     }
 
-    const formula = html.find("[name='formula']");
-    const d20Amount = html.find("#d20");
-    const situationalBonus = html.find("[name='bonus']");
-    const flavorText = html.find("[name='flavor']");
+    // TODO: This is deprecated, change to foundry v13 way of doing this.
+    const jQueryHtml = $(html);
+
+    const formula = jQueryHtml.find("[name='formula']");
+    const d20Amount = jQueryHtml.find(".roll-times");
+    const situationalBonus = jQueryHtml.find("[name='bonus']");
+    const flavorText = jQueryHtml.find("[name='flavor']");
 
     const characterName = flavorText.attr('placeholder').split(' uses')[0];
     const abilityName = flavorText.attr('placeholder').split(' uses')[1].split('.')[0].replace(" ", "");
@@ -135,7 +139,7 @@ export class BeaconBackgrounds {
     const flags = actor.getFlag(MODULE_NAME, BACKGROUNDS);
 
     situationalBonus.parent().hide();
-    d20Amount.parent().hide();
+    d20Amount.hide();
     flavorText.parent().hide();
     formula.parent().hide();
 
@@ -158,10 +162,10 @@ export class BeaconBackgrounds {
       hasTitle = $(e.currentTarget).val();
     });
 
-    console.log(actor);
-
     const CreateBonusFormula = () => {
-      const backgroundMod = flags.backgrounds.find(x => x.id === selectedBackgroundId) != undefined ? 2 : 0;
+      console.log(flags);
+      console.log(selectedBackgroundId);
+      const backgroundMod = flags.backgrounds.find(x => x.id === selectedBackgroundId) != undefined ? 3 : 0;
       const finalFormula = `${backgroundMod} + ${actor.system.lvhalf}`;
       return finalFormula;
     };
@@ -169,14 +173,13 @@ export class BeaconBackgrounds {
     const CreateFlavorText = () => {
       const backgroundName = flags.backgrounds.find(x => x.id === selectedBackgroundId)?.name;
       const backgroundFlavorText = backgroundName !== undefined ? ` using their experience as a ${backgroundName}` : '';
-      const titleFlavorText = hasTitle ? ` furthering their title as ${hasTitle}` : "";
       let flavorString = "";
-      flavorString = `${actor.name} rolls ${abilityName}` + backgroundFlavorText + titleFlavorText;
+      flavorString = `${actor.name} rolls ${abilityName}` + backgroundFlavorText;
 
       return flavorString + '!';
     };
 
-    html.find(".dialog-button").off("click").on("click", async function (event) {
+    jQueryHtml.find("button[type='submit']").off("click").on("click", async function (event) {
       event.preventDefault(); // Prevents any default action
       const formula = `1d20 + ${abilityMod} + ${CreateBonusFormula()}`;
       const roll = await new Roll(formula).evaluate({ async: true });
