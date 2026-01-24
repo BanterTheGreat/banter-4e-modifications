@@ -1,6 +1,42 @@
 import { BACKGROUNDS, MODULE_NAME } from "./globals.js";
 
 export class BeaconBackgrounds {
+  /// A variant of ReplaceSkillsWithBackgrounds that only adds the title.
+  static async addTitleToSkills(sheet, html, data) {
+    if (data.actor.type !== "Player Character") {
+      return;
+    }
+
+    // TODO: This is deprecated, change to foundry v13 way of doing this.
+    const jQueryHtml = $(html);
+
+    const actor = sheet.document;
+
+    // Get the current flags through the sheet document. As the data.actor does not have the proper methods.
+    const narrativeFlags = actor.getFlag(MODULE_NAME, BACKGROUNDS);
+
+    if (narrativeFlags === undefined || narrativeFlags === null) {
+      ui.notifications.error("Couldn't find flags for sheet.")
+      return;
+    }
+
+    // Get the section.
+    const skillsSection = jQueryHtml.find("section.section.skills");
+
+    // Parse the html & handlebars.
+    const iconActions = await renderTemplate("modules/banter-4e-modifications/templates/background-skills/background-title-standalone.html", narrativeFlags);
+
+    skillsSection.append(iconActions);
+
+    // Kill unused button.
+    jQueryHtml.find(".custom-roll-descriptions").remove();
+
+    skillsSection.find(".title-edit").on("click", async function (e) {
+      e.preventDefault();
+      await game.BeaconBackgrounds.showTitleDialog(actor);
+    });
+  }
+
   static async replaceSkillsWithBackgrounds(sheet, html, data) {
     if (data.actor.type !== "Player Character") {
       return;
@@ -8,24 +44,23 @@ export class BeaconBackgrounds {
 
     // TODO: This is deprecated, change to foundry v13 way of doing this.
     const jQueryHtml = $(html);
-    console.log(jQueryHtml);
 
     const actor = sheet.document;
 
     // Get the current flags through the sheet document. As the data.actor does not have the proper methods.
     const narrativeFlags = actor.getFlag(MODULE_NAME, BACKGROUNDS);
-    
+
     if (narrativeFlags === undefined || narrativeFlags === null) {
       ui.notifications.error("Couldn't find flags for sheet.")
       return;
     }
-    
+
     // Sort them alphabatically - TODO: Sort from value.
     narrativeFlags.backgrounds = narrativeFlags.backgrounds.sort((x, y) => x.name.localeCompare(y.name));
-    
+
     // Get the section.
     const skillsSection = jQueryHtml.find("section.section.skills");
-    
+
     // Parse the html & handlebars.
     const iconActions = await renderTemplate("modules/banter-4e-modifications/templates/background-skills/background-skills.html", narrativeFlags);
 
