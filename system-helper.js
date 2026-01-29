@@ -1,4 +1,4 @@
-export class SystemHelper {
+export class  SystemHelper {
   static replaceConditionList() {
     console.error("Replacing condition list");
     // Remove a lot of unnecesary status effects to reduce clutter.
@@ -20,6 +20,15 @@ export class SystemHelper {
       "ongoing_1",
       "ongoing_2",
       "ongoing_3",
+      "cover",
+      "defDown",
+      "regen",
+      "running",
+      "sneaking",
+      "squeezing",
+      "target",
+      "cover",
+      "coverSup",
     ]
 
     CONFIG.statusEffects = CONFIG.statusEffects.filter(x => !statusEffectsToRemove.includes(x.id));
@@ -37,9 +46,6 @@ export class SystemHelper {
   }
 
   static testForNow() {
-    console.error("XXXXXXXXXXXXXXXXX");
-    console.error(game.dnd4e.config.skills);
-
     // Remake with different ability in-world. Heal: 'Intelligence'. Religion: 'Wisdom'.
     delete game.dnd4e.config.skills["hea"];
     delete game.dnd4e.config.skills["rel"];
@@ -48,7 +54,7 @@ export class SystemHelper {
     delete game.dnd4e.config.skills["his"];
 
     // Merged into other skills.
-    // delete game.dnd4e.config.skills["stw"];
+    delete game.dnd4e.config.skills["stw"];
     delete game.dnd4e.config.skills["dun"]
 
     // The custom skill setting in the system is broken and NaN's skill values after updating.
@@ -76,7 +82,5 @@ export class SystemHelper {
       ability: "int",
       armourCheck: false,
     };
-
-    console.error(game.dnd4e.config.skills);
   }
 }
