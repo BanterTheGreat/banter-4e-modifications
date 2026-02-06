@@ -45,7 +45,7 @@ export class  SystemHelper {
     CONFIG.statusEffects = CONFIG.statusEffects.concat(newStatusEffects);
   }
 
-  static testForNow() {
+  static replaceSkills() {
     // Remake with different ability in-world. Heal: 'Intelligence'. Religion: 'Wisdom'.
     delete game.dnd4e.config.skills["hea"];
     delete game.dnd4e.config.skills["rel"];
