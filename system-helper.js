@@ -7,7 +7,6 @@ export class  SystemHelper {
       "attack_down",
       "attack_up",
       "defUp",
-      "curse",
       "disarmed",
       "drunk",
       "flying",

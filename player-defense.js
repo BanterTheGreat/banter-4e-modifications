@@ -55,8 +55,8 @@ export class PlayerDefense {
         targets.forEach(target => {
             htmlContent += `<div class="target">`
             htmlContent += `<span>${target.token.actor.name} (+${target.defenseMod}) defends!</span>`
-            htmlContent += `<div>`
-            htmlContent += `<button style="margin-bottom:10px" id="rollForDefense" data-defense-mod="${target.defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${target.token.actor.id}">Roll! (DC ${rollDC})</button>`;
+            htmlContent += `</div>`
+            htmlContent += `<button style="margin-bottom:10px; width: 100%;" id="rollForDefense" data-defense-mod="${target.defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${target.token.actor.id}">Roll! (DC ${rollDC})</button>`;
             htmlContent += targets.length > 1 ? `<br />` : ``;
         });
         
@@ -163,12 +163,12 @@ export class PlayerDefense {
         } else if (totalResult < rollDC) {
             resultHtml += `<b><a style='color: red'>The enemy hit! (DC ${rollDC})</a></b`
         } else if (diceResult === 20) {
-            resultHtml += `<b><a style='color: darkgreen'>The enemy critically missed! (DC ${rollDC})</a></b`
+            resultHtml += `<b><a style='color: darkgreen'>The enemy critically missed! (DC ${rollDC})</a></b>`
         } else {
-            resultHtml += `<b><a style='color: green'>The enemy missed! (DC ${rollDC})</a></b`;
+            resultHtml += `<b><a style='color: green'>The enemy missed! (DC ${rollDC})</a></b>`;
         }
 
-        let rollContent = resultHtml + rollHtml + "<hr>";
-        await socket.executeAsGM("updateMessageContentWithDelay", message.id, `<button style="margin-bottom:10px" id="rollForDefense" data-defense-mod="${defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${actorId}" disabled>Roll! (DC ${rollDC})</button>`, rollContent);
+        let rollContent = resultHtml + rollHtml;
+        await socket.executeAsGM("updateMessageContentWithDelay", message.id, `<button style="margin-bottom:10px;width:100%" id="rollForDefense" data-defense-mod="${defenseMod}" data-roll-dc="${rollDC}" data-actor-id="${actorId}" disabled>Roll! (DC ${rollDC})</button>`, rollContent);
     }
 }
