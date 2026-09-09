@@ -1,7 +1,9 @@
 import { Dnd4eSystemCustomizations } from "./modules/dnd4e-system-customizations/dnd4e-system-customizations.js";
 import { PlayerDefense } from "./modules/player-defense/player-defense.js";
 import { SocketHelper } from "./modules/player-defense/socket-helper.js";
-import { MODULE_NAME, ENABLE_ACTIVE_DEFENSE, ENABLE_DEBUG_LOGGING } from "./shared/globals.js";
+import { TriggerPrompts } from "./modules/trigger-prompts/trigger-prompts.js";
+import { TRIGGER_SOCKET_ACTION } from "./modules/trigger-prompts/constants.js";
+import { MODULE_NAME, ENABLE_ACTIVE_DEFENSE, ENABLE_DEBUG_LOGGING, ENABLE_TRIGGER_PROMPTS } from "./shared/globals.js";
 
 let socket;
 
@@ -14,6 +16,16 @@ Hooks.on("i18nInit", () => {
     config: true,
     type: Boolean,
     default: true,
+    requiresReload: true,
+  });
+
+  game.settings.register(MODULE_NAME, ENABLE_TRIGGER_PROMPTS, {
+    name: "Enable trigger prompts",
+    description: "Posts private combat prompts when configured actor triggers may occur.",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
     requiresReload: true,
   });
 
@@ -34,6 +46,8 @@ Hooks.once("socketlib.ready", () => {
   socket.register("updateMessage", SocketHelper.updateMessage);
   socket.register("attemptDefenseDialog", SocketHelper.attemptDefenseDialog);
   socket.register("resolveDefenseTarget", SocketHelper.resolveDefenseTarget);
+  socket.register(TRIGGER_SOCKET_ACTION.EVALUATE_ATTACK, TriggerPrompts.evaluateAttackFromSocket);
+  socket.register(TRIGGER_SOCKET_ACTION.CLAIM_PROMPT, SocketHelper.claimTriggerPrompt);
 });
 
 Hooks.once("ready", () => {
@@ -43,6 +57,11 @@ Hooks.once("ready", () => {
 });
 
 Hooks.on("ready", () => game.SocketHelper = new SocketHelper());
+Hooks.on("ready", () => {
+  if (game.settings.get(MODULE_NAME, ENABLE_TRIGGER_PROMPTS)) {
+    game.TriggerPrompts = new TriggerPrompts(socket);
+  }
+});
 
 Hooks.on("init", Dnd4eSystemCustomizations.replaceConditionList);
 Hooks.on("init", Dnd4eSystemCustomizations.replaceSkills);
@@ -55,5 +74,17 @@ Hooks.on("i18nInit", () => {
     Hooks.on("dnd4e.rollAttack", PlayerDefense.OnRollAttack);
     Hooks.on("preCreateChatMessage", PlayerDefense.OnPowerChatMessage);
     Hooks.on("renderChatMessage", message => PlayerDefense.onRenderDefenseMessage(message, socket));
+  }
+});
+
+// Trigger prompts
+
+Hooks.on("i18nInit", () => {
+  if (game.settings.get(MODULE_NAME, ENABLE_TRIGGER_PROMPTS)) {
+    Hooks.on("dnd4e.rollAttack", TriggerPrompts.onRollAttack);
+    Hooks.on("preCreateChatMessage", message => TriggerPrompts.onPowerChatMessage(message, socket));
+    Hooks.on("preUpdateToken", TriggerPrompts.onPreUpdateToken);
+    Hooks.on("getActorSheetHeaderButtons", TriggerPrompts.onGetActorSheetHeaderButtons);
+    Hooks.on("renderChatMessage", (message, html) => TriggerPrompts.onRenderChatMessage(message, html));
   }
 });

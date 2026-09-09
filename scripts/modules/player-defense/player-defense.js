@@ -63,6 +63,8 @@ export class PlayerDefense {
       const assignedUser = PlayerDefense.#getEligibleUser(actor);
       Logger.info("Selected defense-dialog recipient", {
         actorId: actor.id,
+        tokenId: target.token.id,
+        sceneId: target.token.document?.parent?.id ?? target.token.scene?.id ?? canvas.scene?.id ?? null,
         actorName: actor.name,
         userId: assignedUser?.id ?? null,
         userName: assignedUser?.name ?? null,
@@ -97,6 +99,7 @@ export class PlayerDefense {
      * Builds the public, non-interactive chat content.
      *
      * @param {object[]} targets
+     * @param {object} attackContext
      * @returns {string}
      */
   static #buildDefenseChatContent(targets) {
@@ -130,7 +133,7 @@ export class PlayerDefense {
      * @param {Item} item
      * @param {object[]} targets
      */
-  static #createDefenseMessage(attacker, item, targets) {
+  static #createDefenseMessage(attacker, item, targets, attackContext) {
     const { attack, hit, miss } = PlayerDefense.#getPowerDamageData(item);
     const hasDamage = Boolean(item.hasDamage || hit.isDamage || hit.formula?.trim());
     const hasMissDamage = Boolean(miss.halfDamage || miss.formula?.trim());
@@ -150,6 +153,8 @@ export class PlayerDefense {
         playerDefense: {
           attackName: item.name,
           attackerId: attacker.id,
+          attackerTokenId: attackContext.attackerTokenId,
+          sceneId: attackContext.sceneId,
           itemId: item.id ?? item._id,
           itemName: item.name,
           hasDamage,
@@ -236,7 +241,7 @@ export class PlayerDefense {
     const { attack: attackData } = PlayerDefense.#getPowerDamageData(item);
     const defenseTargets = PlayerDefense.#buildDefenseTargets(targets, rollDC, attacker, attackData.def?.toUpperCase() ?? "?", item);
     Logger.info("Intercepting NPC attack", { messageId: message.id, attackerId: attacker.id, itemId: item.id, targetIds: defenseTargets.map(target => target.actorId), rollFormula, totalModifier, rollDC });
-    PlayerDefense.#createDefenseMessage(attacker, item, defenseTargets);
+    PlayerDefense.#createDefenseMessage(attacker, item, defenseTargets, attack);
     return false;
   }
 
@@ -262,7 +267,13 @@ export class PlayerDefense {
       return;
     }
 
-    game.PlayerDefense.lastAttack = { item, targets: targetsData, attacker };
+    game.PlayerDefense.lastAttack = {
+      item,
+      targets: targetsData,
+      attacker,
+      attackerTokenId: speaker.token ?? null,
+      sceneId: canvas.scene?.id ?? null,
+    };
     Logger.info("Captured NPC attack", { attackerId: attacker.id, itemId, targetIds: targetsData.map(targetData => targetData.token.actor.id), defenseModifiers: targetsData.map(targetData => targetData.defenseMod) });
   }
 

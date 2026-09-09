@@ -1,4 +1,5 @@
 import { Logger } from "../../shared/logger.js";
+import { TRIGGER_PROMPT_FLAG } from "../trigger-prompts/constants.js";
 
 // EVERYTHING HERE SHOULD ONLY BE CALLED ON THE GM'S INSTANCE USING SOCKETLIB.
 /**
@@ -97,10 +98,42 @@ export class SocketHelper {
             await message.update({ content, flags: { ...message.flags, playerDefense: { ...defense, targets, damageRolled } } });
             Logger.info("Resolved defense target", { messageId, targetId, outcome });
 
+            if (outcome === "miss") {
+                await game.TriggerPrompts?.onActiveDefenseMiss({
+                    attackerActorId: defense.attackerId,
+                    attackerTokenId: defense.attackerTokenId,
+                    sceneId: defense.sceneId,
+                    targetActorId: target.actorId,
+                    targetTokenId: target.tokenId,
+                    targetSceneId: target.sceneId,
+                });
+            }
+
             for (const group of damageGroups) {
                 await SocketHelper.#rollDefenseDamage(defense, group, messageId);
             }
             return true;
+        });
+    }
+
+    /**
+     * Atomically marks a trigger prompt as used before its selected item is
+     * posted to chat.
+     *
+     * @param {string} messageId
+     * @returns {Promise<object|null>}
+     */
+    static async claimTriggerPrompt(messageId) {
+        return SocketHelper.#queueUpdate(async () => {
+            const message = game.messages.get(messageId);
+            const prompt = message?.flags?.[TRIGGER_PROMPT_FLAG];
+            if (!prompt || prompt.used) {
+                return null;
+            }
+
+            prompt.used = true;
+            await message.update({ flags: { ...message.flags, [TRIGGER_PROMPT_FLAG]: prompt } });
+            return prompt;
         });
     }
 
