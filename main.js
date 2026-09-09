@@ -50,18 +50,13 @@ Hooks.on("ready", () => game.SocketHelper = new SocketHelper());
 Hooks.on("init", SystemHelper.replaceConditionList)
 Hooks.on("init", SystemHelper.replaceSkills)
 
-// Hooks.on("renderActorSheet4e", BeaconBackgrounds.addTitleToSkills);
-// Hooks.on("ready", BeaconBackgrounds.setInitialFlagsOnPlayerCharacters);
-// Hooks.on("renderRollDialog", BeaconBackgrounds.overwriteAbilityDialog);
-
 // Player Defense
 
 Hooks.on("i18nInit", () => {
-  if (game.settings.get(MODULE_NAME, ENABLE_ACTIVE_DEFENSE)) {    
+  if (game.settings.get(MODULE_NAME, ENABLE_ACTIVE_DEFENSE)) {
     Hooks.on("ready", () => game.PlayerDefense = new PlayerDefense());
     Hooks.on("dnd4e.rollAttack", PlayerDefense.OnRollAttack);
     Hooks.on("preCreateChatMessage", PlayerDefense.OnPowerChatMessage);
     Hooks.on("renderChatMessage", message => PlayerDefense.onRenderDefenseMessage(message, socket));
-  } else {
   }
 });
