@@ -7,6 +7,7 @@ import {
     D8DiceWithMod,
     logCalculation
 } from "./damage-calculator.js";
+import { Logger } from "./logger.js";
 
 export class Scratchpad {
     static runScratchPad() {
@@ -24,12 +25,11 @@ export class Scratchpad {
         const averageOldDamageWithMod = getAverage([d4withModOld, d6withModOld, d8withModOld, d10withModOld, d12withModOld]);
         const averageNewDamageWithMod = getAverage([d4withModNew, d6withModNew, d8withModNew, d10withModNew, d12withModNew]);
         
-        // Log the results
-        console.error(`Average Old Damage With Mod: ${averageOldDamageWithMod}`);
-        console.error(`Average New Damage With Mod: ${averageNewDamageWithMod}`);
-        console.error(`With Mod Percentage: ${Math.floor(averageNewDamageWithMod / averageOldDamageWithMod * 100)}%`);
-        
-        console.error("#############");
+        Logger.info("Calculated overall damage averages with modifier", {
+            oldAverage: averageOldDamageWithMod,
+            newAverage: averageNewDamageWithMod,
+            percentage: Math.floor(averageNewDamageWithMod / averageOldDamageWithMod * 100),
+        });
         
         // Calculate "without mod" values
         const [d4withoutModOld, d4withoutModNew, d4WithoutPercentage] = logCalculation(new D4Dice());
@@ -42,8 +42,10 @@ export class Scratchpad {
         const averageOldDamageWithoutMod = getAverage([d4withoutModOld, d6withoutModOld, d8withoutModOld, d10withoutModOld, d12withoutModOld]);
         const averageNewDamageWithoutMod = getAverage([d4withoutModNew, d6withoutModNew, d8withoutModNew, d10withoutModNew, d12withoutModNew]);
 
-        console.error(`Average Old Damage Without Mod: ${averageOldDamageWithoutMod}`);
-        console.error(`Average New Damage Without Mod: ${averageNewDamageWithoutMod}`);
-        console.error(`Without Mod Percentage: ${Math.floor(averageNewDamageWithoutMod / averageOldDamageWithoutMod * 100)}%`);
+        Logger.info("Calculated overall damage averages without modifier", {
+            oldAverage: averageOldDamageWithoutMod,
+            newAverage: averageNewDamageWithoutMod,
+            percentage: Math.floor(averageNewDamageWithoutMod / averageOldDamageWithoutMod * 100),
+        });
     }
 }

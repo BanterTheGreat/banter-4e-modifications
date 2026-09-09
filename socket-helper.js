@@ -1,3 +1,5 @@
+import { Logger } from "./logger.js";
+
 // EVERYTHING HERE SHOULD ONLY BE CALLED ON THE GM'S INSTANCE USING SOCKETLIB.
 export class SocketHelper {
     lastUpdate = 0;
@@ -23,14 +25,14 @@ export class SocketHelper {
     // Delayed to make sure we don't overwrite changes if we back to back update a message through multiple clients.
     static async updateMessageContentWithDelay(id, textToReplace, replacementText) {
         game.SocketHelper.updateQueue = game.SocketHelper.updateQueue.then(async () => {
-            console.error("Executing safely...");
+            Logger.info("Executing queued chat-message update", {messageId: id});
             // Simulate an async operation
             const message = game.messages.get(id);
             if (message) {
                 const newMessageContent = message.content.replace(textToReplace, replacementText);
                 await message.update({...message, content: newMessageContent});
             } // Simulate delay
-            console.error("Execution finished!");
+            Logger.info("Finished queued chat-message update", {messageId: id});
         });
     }
 }

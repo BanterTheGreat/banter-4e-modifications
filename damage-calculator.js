@@ -1,3 +1,5 @@
+import { Logger } from "./logger.js";
+
 class Dice {
     constructor(name, oldDamage, newDamage) {
         this.Name = name;
@@ -101,11 +103,12 @@ export function logCalculation(diceClass) {
     const newAverage = calculateAverage(diceClass.NewDamage);
     const percentage = Math.floor(newAverage / oldAverage * 100);
     
-    console.error(diceClass.Name);
-    console.error(`Old Damage Average: ${oldAverage}`);
-    console.error(`New Damage Average: ${newAverage}`);
-    console.error(`Percentage (%): ${percentage}`)
-    console.error(); // Blank line for spacing
+    Logger.info("Calculated damage averages", {
+        dice: diceClass.Name,
+        oldAverage,
+        newAverage,
+        percentage,
+    });
 
     return [oldAverage, newAverage, percentage];
 }

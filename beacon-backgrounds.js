@@ -1,4 +1,5 @@
 import { BACKGROUNDS, MODULE_NAME } from "./globals.js";
+import { Logger } from "./logger.js";
 
 export class BeaconBackgrounds {
   /// A variant of ReplaceSkillsWithBackgrounds that only adds the title.
@@ -16,7 +17,7 @@ export class BeaconBackgrounds {
     const narrativeFlags = actor.getFlag(MODULE_NAME, BACKGROUNDS);
 
     if (narrativeFlags === undefined || narrativeFlags === null) {
-      ui.notifications.error("Couldn't find flags for sheet.")
+      Logger.error("Couldn't find flags for sheet", {actorId: actor.id});
       return;
     }
 
@@ -51,7 +52,7 @@ export class BeaconBackgrounds {
     const narrativeFlags = actor.getFlag(MODULE_NAME, BACKGROUNDS);
 
     if (narrativeFlags === undefined || narrativeFlags === null) {
-      ui.notifications.error("Couldn't find flags for sheet.")
+      Logger.error("Couldn't find flags for sheet", {actorId: actor.id});
       return;
     }
 
@@ -92,7 +93,7 @@ export class BeaconBackgrounds {
 
     if (false) {
       // Development setting. Resets all flags.
-      ui.notifications.error("Flag Reset is enabled!");
+      Logger.warn("Flag reset is enabled");
       toSetupCharacters = game.actors.filter(actor => actor.type === "Player Character");
     }
     else {
@@ -101,7 +102,9 @@ export class BeaconBackgrounds {
 
 
     // Initial Setup.
-    console.log("Executing initial setup");
+    Logger.info("Executing initial background setup", {
+      actorIds: toSetupCharacters.map(character => character.id),
+    });
     toSetupCharacters.forEach(character => {
       const defaultValues = {
         version: 1,
@@ -114,7 +117,7 @@ export class BeaconBackgrounds {
   }
 
   static async overwriteAbilityDialog(dialog, html, data) {
-    console.log("Checking ability dialog overwrite conditions.");
+    Logger.info("Checking ability dialog overwrite conditions", {dialogTitle: dialog.title});
     const titles = ["Strength Check", "Constitution Check", "Dexterity Check", "Intelligence Check", "Wisdom Check", "Charisma Check"];
     if (!titles.includes(dialog.title)) {
       return;
@@ -198,8 +201,10 @@ export class BeaconBackgrounds {
     });
 
     const CreateBonusFormula = () => {
-      console.log(flags);
-      console.log(selectedBackgroundId);
+      Logger.info("Creating background bonus formula", {
+        actorId: actor.id,
+        selectedBackgroundId,
+      });
       const backgroundMod = flags.backgrounds.find(x => x.id === selectedBackgroundId) != undefined ? 3 : 0;
       const finalFormula = `${backgroundMod} + ${actor.system.lvhalf}`;
       return finalFormula;
@@ -343,6 +348,6 @@ export class BeaconBackgrounds {
 
     // Triggered when clicking on the add burden button.
     // Open a model here to configure burden.
-    console.log("Removed Background?");
+    Logger.info("Removed background", {actorId: actor.id, backgroundId});
   }
 }

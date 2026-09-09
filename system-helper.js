@@ -1,6 +1,7 @@
+import { Logger } from "./logger.js";
+
 export class  SystemHelper {
   static replaceConditionList() {
-    console.error("Replacing condition list");
     // Remove a lot of unnecesary status effects to reduce clutter.
     const statusEffectsToRemove = [
       "ammo_count",
