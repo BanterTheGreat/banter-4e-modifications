@@ -73,6 +73,19 @@
     margin: 0;
 }
 
+.trigger-prompts-config__range {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: var(--font-size-12);
+    white-space: nowrap;
+}
+
+.trigger-prompts-config__range input {
+    width: 4rem;
+}
+
 .trigger-prompts-message__actions {
     display: grid;
     gap: 0.4rem;

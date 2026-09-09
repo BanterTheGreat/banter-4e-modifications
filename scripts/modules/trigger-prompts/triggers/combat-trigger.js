@@ -6,7 +6,7 @@
  * and chat-message delivery.
  */
 export class CombatTrigger {
-  /** @param {{id: string, label: string, configurable: boolean, defaultAbilityName: string, description: string}} definition */
+  /** @param {{id: string, label: string, configurable: boolean, defaultAbilityName: string, description: string, defaultRangeSquares?: number}} definition */
   constructor(definition) {
     Object.assign(this, definition);
   }

@@ -25,6 +25,12 @@ export class ActorTriggerConfiguration {
     return actor.items.find(item => item.name?.toLowerCase() === trigger.defaultAbilityName.toLowerCase());
   }
 
+  /** @param {Actor} actor @param {object} trigger */
+  static rangeSquares(actor, trigger) {
+    const range = ActorTriggerConfiguration.#entries(actor)[trigger.id]?.rangeSquares;
+    return Number.isFinite(range) && range >= 0 ? range : trigger.defaultRangeSquares ?? null;
+  }
+
   /** @param {Actor} actor */
   static show(actor) {
     const config = ActorTriggerConfiguration.#entries(actor);
@@ -55,6 +61,9 @@ export class ActorTriggerConfiguration {
       ? `<input class="trigger-prompts-config__enabled" type="checkbox" name="${trigger.id}.enabled" ${enabled} title="Enable ${trigger.label}" aria-label="Enable ${trigger.label}">`
       : "";
     const options = `<option value="">Use default: ${ActorTriggerConfiguration.#defaultAbilityLabel(actor, trigger)}</option>${itemOptions}`;
+    const range = trigger.defaultRangeSquares === undefined
+      ? ""
+      : `<label class="trigger-prompts-config__range">Range <input type="number" name="${trigger.id}.rangeSquares" min="0" step="1" value="${ActorTriggerConfiguration.rangeSquares(actor, trigger)}"> squares</label>`;
     return `<section class="trigger-prompts-config__row">
       <div class="trigger-prompts-config__details">
         <strong>${trigger.label}</strong>
@@ -63,6 +72,7 @@ export class ActorTriggerConfiguration {
       <div class="trigger-prompts-config__controls">
         ${toggle}
         <select name="${trigger.id}.itemId">${options}</select>
+        ${range}
       </div>
     </section>`;
   }
@@ -82,7 +92,12 @@ export class ActorTriggerConfiguration {
     const data = new FormData(form);
     const config = {};
     TRIGGERS.forEach(trigger => {
-      config[trigger.id] = { enabled: trigger.configurable ? data.has(`${trigger.id}.enabled`) : true, itemId: data.get(`${trigger.id}.itemId`) || null };
+      const rangeSquares = data.get(`${trigger.id}.rangeSquares`);
+      config[trigger.id] = {
+        enabled: trigger.configurable ? data.has(`${trigger.id}.enabled`) : true,
+        itemId: data.get(`${trigger.id}.itemId`) || null,
+        ...(trigger.defaultRangeSquares === undefined ? {} : { rangeSquares: rangeSquares === "" ? trigger.defaultRangeSquares : Number(rangeSquares) }),
+      };
     });
     await actor.setFlag(MODULE_NAME, TRIGGER_CONFIGURATION_FLAG, config);
   }

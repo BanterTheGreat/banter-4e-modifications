@@ -1,7 +1,7 @@
 import { Logger } from "../../shared/logger.js";
 import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "./constants.js";
 import { ActorTriggerConfiguration } from "./actor-trigger-configuration.js";
-import { getTrigger } from "./trigger-registry.js";
+import { getTrigger, TRIGGERS } from "./trigger-registry.js";
 
 /** Evaluates combat events on the primary GM and delivers eligible prompts. */
 export class CombatTriggerDispatcher {
@@ -21,10 +21,14 @@ export class CombatTriggerDispatcher {
     }
     for (const targetData of context.targets ?? []) {
       const target = this.#combatant(targetData.sceneId, targetData.tokenId);
-      if (!target || !this.#isMiss(context, targetData)) {
+      if (!target) {
         continue;
       }
-      await this.#dispatch(TRIGGER_ID.ENEMY_MISSES_ALLY, { type: TRIGGER_EVENT_TYPE.MISS, attacker, target });
+      const outcome = this.#outcome(context, targetData);
+      if (!outcome) {
+        continue;
+      }
+      await this.#dispatchAttackResult({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome, attacker, target });
     }
   }
 
@@ -57,7 +61,7 @@ export class CombatTriggerDispatcher {
     const attacker = this.#combatant(context.sceneId, context.attackerTokenId);
     const target = this.#combatant(context.targetSceneId, context.targetTokenId);
     if (attacker && target) {
-      await this.#dispatch(TRIGGER_ID.ENEMY_MISSES_ALLY, { type: TRIGGER_EVENT_TYPE.MISS, attacker, target });
+      await this.#dispatchAttackResult({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome: "miss", attacker, target });
     }
   }
 
@@ -69,6 +73,13 @@ export class CombatTriggerDispatcher {
     }
     for (const context of trigger.evaluate(event, this.#triggerServices())) {
       await this.#deliver(trigger, context);
+    }
+  }
+
+  /** @param {object} event */
+  async #dispatchAttackResult(event) {
+    for (const trigger of TRIGGERS) {
+      await this.#dispatch(trigger.id, event);
     }
   }
 
@@ -89,8 +100,29 @@ export class CombatTriggerDispatcher {
   #canEvaluate() { return game.user.isGM && game.combat?.started && game.users.filter(user => user.active && user.isGM).sort((left, right) => left.id.localeCompare(right.id))[0]?.id === game.user.id; }
   #combatant(sceneId, tokenId) { return game.combat?.combatants.find(combatant => combatant.sceneId === sceneId && combatant.tokenId === tokenId); }
   #token(sceneId, tokenId) { return game.scenes.get(sceneId)?.tokens.get(tokenId); }
-  #triggerServices() { return { combatants: game.combat.combatants, getToken: (sceneId, tokenId) => this.#token(sceneId, tokenId), areHostile: (left, right) => left.disposition !== right.disposition, areAllies: (left, right) => left.disposition === right.disposition, movesAdjacent: (mover, destination, candidate) => this.#movesAdjacent(mover, destination, candidate) }; }
-  #isMiss(context, target) { return target.missed || (target.defense !== null && context.total !== undefined && (context.natural === 1 || context.natural !== 20 && context.total < target.defense)); }
+  #triggerServices() { return { combatants: game.combat.combatants, getToken: (sceneId, tokenId) => this.#token(sceneId, tokenId), areHostile: (left, right) => left.disposition !== right.disposition, areAllies: (left, right) => left.disposition === right.disposition, rangeSquares: (actor, trigger) => ActorTriggerConfiguration.rangeSquares(actor, trigger), isWithinRange: (left, right, rangeSquares) => rangeSquares === null || this.#distanceSquares(left, right) <= rangeSquares, movesAdjacent: (mover, destination, candidate) => this.#movesAdjacent(mover, destination, candidate) }; }
+
+  /** @param {object} context @param {object} target */
+  #outcome(context, target) {
+    if (target.missed || context.natural === 1) {
+      return "miss";
+    }
+    if (context.natural === 20) {
+      return "hit";
+    }
+    if (target.defense === null || context.total === undefined) {
+      return null;
+    }
+    return context.total < target.defense ? "miss" : "hit";
+  }
+
+  /** @param {TokenDocument} left @param {TokenDocument} right */
+  #distanceSquares(left, right) {
+    const gridSize = canvas.grid.size;
+    const leftCenter = { x: left.x + left.width * gridSize / 2, y: left.y + left.height * gridSize / 2 };
+    const rightCenter = { x: right.x + right.width * gridSize / 2, y: right.y + right.height * gridSize / 2 };
+    return Math.max(Math.abs(leftCenter.x - rightCenter.x), Math.abs(leftCenter.y - rightCenter.y)) / gridSize;
+  }
 
   /** @param {TokenDocument} mover @param {{x: number, y: number}} destination @param {TokenDocument} candidate */
   #movesAdjacent(mover, destination, candidate) {

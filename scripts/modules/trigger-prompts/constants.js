@@ -1,13 +1,15 @@
 /** Immutable identifiers shared by trigger dispatch, storage, and chat UI. */
 export const TRIGGER_ID = Object.freeze({
   OPPORTUNITY_ATTACK: "opportunity-attack",
+  ENEMY_MISSES_YOU: "enemy-misses-you",
   ENEMY_MISSES_ALLY: "enemy-misses-ally",
+  ENEMY_HITS_YOU: "enemy-hits-you",
 });
 
 /** Event types accepted by CombatTrigger.evaluate. */
 export const TRIGGER_EVENT_TYPE = Object.freeze({
   MOVEMENT: "movement",
-  MISS: "miss",
+  ATTACK_RESULT: "attack-result",
 });
 
 /** Actions exposed by a private trigger-prompt chat card. */

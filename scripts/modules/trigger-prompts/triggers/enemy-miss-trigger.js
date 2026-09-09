@@ -2,7 +2,7 @@ import { CombatTrigger } from "./combat-trigger.js";
 import { DEFAULT_ABILITY_NAME, TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
 
 /**
- * Detects an enemy missing a combatant and finds their eligible allies.
+ * Detects an enemy missing a combatant and finds nearby eligible allies.
  */
 export class EnemyMissTrigger extends CombatTrigger {
   constructor() {
@@ -11,13 +11,14 @@ export class EnemyMissTrigger extends CombatTrigger {
       label: "Enemy misses you or an ally",
       configurable: true,
       defaultAbilityName: DEFAULT_ABILITY_NAME.MELEE_BASIC_ATTACK,
-      description: "An enemy misses this actor or an allied combatant.",
+      defaultRangeSquares: 10,
+      description: "An enemy misses this actor or an allied combatant within the configured range.",
     });
   }
 
   /** @inheritdoc */
   evaluate(event, services) {
-    if (event.type !== TRIGGER_EVENT_TYPE.MISS) {
+    if (event.type !== TRIGGER_EVENT_TYPE.ATTACK_RESULT || event.outcome !== "miss") {
       return [];
     }
 
@@ -29,7 +30,7 @@ export class EnemyMissTrigger extends CombatTrigger {
 
     return services.combatants
       .map(combatant => services.getToken(combatant.sceneId, combatant.tokenId))
-      .filter(candidate => candidate && services.areAllies(candidate, missedTarget))
+      .filter(candidate => candidate && services.areAllies(candidate, missedTarget) && services.isWithinRange(candidate, missedTarget, services.rangeSquares(candidate.actor, this)))
       .map(candidate => ({
         actor: candidate.actor,
         sourceName: attacker.name,
