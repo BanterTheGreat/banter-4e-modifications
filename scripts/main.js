@@ -1,9 +1,7 @@
-import { SystemHelper } from "./system-helper.js";
-import { BeaconBackgrounds } from "./beacon-backgrounds.js";
-import { PlayerDefense } from "./player-defense.js";
-import { SocketHelper } from "./socket-helper.js";
-import { Logger } from "./logger.js";
-import { MODULE_NAME, ENABLE_ACTIVE_DEFENSE, ENABLE_DEBUG_LOGGING } from "./globals.js";
+import { Dnd4eSystemCustomizations } from "./modules/dnd4e-system-customizations/dnd4e-system-customizations.js";
+import { PlayerDefense } from "./modules/player-defense/player-defense.js";
+import { SocketHelper } from "./modules/player-defense/socket-helper.js";
+import { MODULE_NAME, ENABLE_ACTIVE_DEFENSE, ENABLE_DEBUG_LOGGING } from "./shared/globals.js";
 
 let socket;
 
@@ -44,11 +42,10 @@ Hooks.once("ready", () => {
   }
 });
 
-Hooks.on("ready", () => game.BeaconBackgrounds = new BeaconBackgrounds());
 Hooks.on("ready", () => game.SocketHelper = new SocketHelper());
 
-Hooks.on("init", SystemHelper.replaceConditionList)
-Hooks.on("init", SystemHelper.replaceSkills)
+Hooks.on("init", Dnd4eSystemCustomizations.replaceConditionList);
+Hooks.on("init", Dnd4eSystemCustomizations.replaceSkills);
 
 // Player Defense
 

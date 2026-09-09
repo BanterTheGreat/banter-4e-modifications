@@ -1,6 +1,7 @@
-import { Logger } from "./logger.js";
-
-export class  SystemHelper {
+/**
+ * Applies this module's homebrew changes to the DnD4e system configuration.
+ */
+export class Dnd4eSystemCustomizations {
   static replaceConditionList() {
     // Remove a lot of unnecesary status effects to reduce clutter.
     const statusEffectsToRemove = [

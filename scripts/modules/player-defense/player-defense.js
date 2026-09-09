@@ -1,4 +1,4 @@
-import { Logger } from "./logger.js";
+import { Logger } from "../../shared/logger.js";
 
 /**
  * Handles NPC attack interception and the player-defense dialog workflow.

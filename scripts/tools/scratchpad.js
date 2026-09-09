@@ -7,7 +7,7 @@ import {
     D8DiceWithMod,
     logCalculation
 } from "./damage-calculator.js";
-import { Logger } from "./logger.js";
+import { Logger } from "../shared/logger.js";
 
 export class Scratchpad {
     static runScratchPad() {

@@ -1,4 +1,4 @@
-import { Logger } from "./logger.js";
+import { Logger } from "../shared/logger.js";
 
 class Dice {
     constructor(name, oldDamage, newDamage) {

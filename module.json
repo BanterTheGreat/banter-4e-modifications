@@ -5,7 +5,7 @@
 	"version": "1.0.0",
 	"authors": ["Banter"],
 	"styles": ["styles/main.css"],
-	"esmodules": ["main.js", "scratchpad.js", "damage-calculator.js", "globals.js", "system-helper.js"],
+	"esmodules": ["scripts/main.js"],
 	"socket": true,
 	"compatibility": {
 		"minimum": "13",

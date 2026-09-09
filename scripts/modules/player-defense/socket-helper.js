@@ -1,4 +1,4 @@
-import { Logger } from "./logger.js";
+import { Logger } from "../../shared/logger.js";
 
 // EVERYTHING HERE SHOULD ONLY BE CALLED ON THE GM'S INSTANCE USING SOCKETLIB.
 /**
