@@ -254,7 +254,14 @@ export class PlayerDefense {
     }
 
     const itemId = item.id ?? item._id;
-    const targetsData = target.targets.map((token, index) => ({ token, defenseMod: target.targDefValArray[index] - 10 }));
+    const targetsData = target.targets
+      .map((token, index) => ({ token, defenseMod: target.targDefValArray[index] - 10 }))
+      .filter(targetData => targetData.token.actor?.type === "Player Character");
+    if (targetsData.length === 0) {
+      game.PlayerDefense.lastAttack = null;
+      return;
+    }
+
     game.PlayerDefense.lastAttack = { item, targets: targetsData, attacker };
     Logger.info("Captured NPC attack", { attackerId: attacker.id, itemId, targetIds: targetsData.map(targetData => targetData.token.actor.id), defenseModifiers: targetsData.map(targetData => targetData.defenseMod) });
   }
