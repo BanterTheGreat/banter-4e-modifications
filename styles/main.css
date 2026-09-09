@@ -57,3 +57,20 @@
 .title-edit {
     cursor: pointer;
 }
+
+.player-defense-effect {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-left: 3px solid;
+    border-radius: 2px;
+}
+
+.player-defense-effect--hit {
+    border-color: darkred;
+    background: rgba(139, 0, 0, 0.08);
+}
+
+.player-defense-effect--miss {
+    border-color: darkgreen;
+    background: rgba(0, 100, 0, 0.08);
+}

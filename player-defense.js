@@ -53,9 +53,11 @@ export class PlayerDefense {
      * @param {number} rollDC
      * @param {Actor} attacker
      * @param {string} defenseStat
+     * @param {Item} item
      * @returns {object[]}
      */
-    static #buildDefenseTargets(targets, rollDC, attacker, defenseStat) {
+    static #buildDefenseTargets(targets, rollDC, attacker, defenseStat, item) {
+    const { hit, miss } = PlayerDefense.#getPowerDamageData(item);
     return targets.map((target, index) => {
       const actor = target.token.actor;
       const assignedUser = PlayerDefense.#getEligibleUser(actor);
@@ -73,9 +75,12 @@ export class PlayerDefense {
                 attackerName: attacker.name,
                 defenseStat,
                 defenseMod: target.defenseMod,
-        rollDC,
-        assignedUserId: assignedUser?.id ?? null,
-        dialogAttempted: false,
+                rollDC,
+                hitText: hit.detail ?? "",
+                missText: miss.detail ?? "",
+                assignedUserId: assignedUser?.id ?? null,
+                dialogAttempted: false,
+                resolved: false,
       };
     });
   }
@@ -103,6 +108,22 @@ export class PlayerDefense {
   }
 
     /**
+     * Reads power data across the legacy DnD4e data-model accessors used by
+     * Foundry v12 and v13.
+     *
+     * @param {Item} item
+     * @returns {{attack: object, hit: object, miss: object}}
+     */
+  static #getPowerDamageData(item) {
+    const system = item.system ?? item.data?.data ?? {};
+    return {
+      attack: item.attack ?? system.attack ?? {},
+      hit: item.hit ?? system.hit ?? {},
+      miss: item.miss ?? system.miss ?? {},
+    };
+  }
+
+    /**
      * Creates the replacement chat message for an intercepted NPC attack.
      *
      * @param {Actor} attacker
@@ -110,10 +131,37 @@ export class PlayerDefense {
      * @param {object[]} targets
      */
   static #createDefenseMessage(attacker, item, targets) {
+    const { attack, hit, miss } = PlayerDefense.#getPowerDamageData(item);
+    const hasDamage = Boolean(item.hasDamage || hit.isDamage || hit.formula?.trim());
+    const hasMissDamage = Boolean(miss.halfDamage || miss.formula?.trim());
+    Logger.info("[DEBUG-pd-damage] Prepared power damage data", {
+      itemId: item.id ?? item._id,
+      hasDamage,
+      hasMissDamage,
+      hitText: hit.detail,
+      missText: miss.detail,
+      hitFormula: hit.formula,
+      missFormula: miss.formula,
+    });
     ChatMessage.create({
-      flavor: `<b>${attacker.name}</b> uses <b>${item.name}</b> VS. <b>${item.attack.def.toUpperCase()}</b>!`,
+      flavor: `<b>${attacker.name}</b> uses <b>${item.name}</b> VS. <b>${attack.def?.toUpperCase() ?? "?"}</b>!`,
       content: PlayerDefense.#buildDefenseChatContent(targets),
-      flags: { playerDefense: { attackName: item.name, targets } },
+      flags: {
+        playerDefense: {
+          attackName: item.name,
+          attackerId: attacker.id,
+          itemId: item.id ?? item._id,
+          itemName: item.name,
+          hasDamage,
+          hasMissDamage,
+          missDamage: {
+            halfDamage: Boolean(miss.halfDamage),
+            formula: miss.formula ?? "",
+          },
+          damageRolled: { normal: false, critical: false, miss: false },
+          targets,
+        },
+      },
     });
   }
 
@@ -121,22 +169,41 @@ export class PlayerDefense {
      * @param {number} diceResult
      * @param {number} totalResult
      * @param {number} rollDC
-     * @returns {string}
+     * @returns {{outcome: string, resultHtml: string}}
      */
-  static #getDefenseResultHtml(diceResult, totalResult, rollDC) {
+  static #getDefenseResult(diceResult, totalResult, rollDC) {
     if (diceResult === PlayerDefense.CRITICAL_FAILURE) {
-      return `<b><a style='color: darkred'>The enemy critically hit! (DC ${rollDC})</a></b>`;
+      return { outcome: "critical", resultHtml: `<b><a style='color: darkred'>The enemy critically hit! (DC ${rollDC})</a></b>` };
     }
 
     if (totalResult < rollDC) {
-      return `<b><a style='color: red'>The enemy hit! (DC ${rollDC})</a></b>`;
+      return { outcome: "normal", resultHtml: `<b><a style='color: red'>The enemy hit! (DC ${rollDC})</a></b>` };
     }
 
     if (diceResult === PlayerDefense.CRITICAL_SUCCESS) {
-      return `<b><a style='color: darkgreen'>The enemy critically missed! (DC ${rollDC})</a></b>`;
+      return { outcome: "miss", resultHtml: `<b><a style='color: darkgreen'>The enemy critically missed! (DC ${rollDC})</a></b>` };
     }
 
-    return `<b><a style='color: green'>The enemy missed! (DC ${rollDC})</a></b>`;
+    return { outcome: "miss", resultHtml: `<b><a style='color: green'>The enemy missed! (DC ${rollDC})</a></b>` };
+  }
+
+    /**
+     * Formats the power's effect text for a resolved defense outcome.
+     *
+     * @param {object} target
+     * @param {string} outcome
+     * @returns {string}
+     */
+  static #getOutcomeEffectHtml(target, outcome) {
+    const isMiss = outcome === "miss";
+    const text = isMiss ? target.missText : target.hitText;
+    if (!text) {
+      return "";
+    }
+
+    const label = isMiss ? "MISS" : "HIT";
+    const cssClass = isMiss ? "player-defense-effect--miss" : "player-defense-effect--hit";
+    return `<div class="player-defense-effect ${cssClass}"><strong>${label}</strong><div>${text}</div></div>`;
   }
 
     /**
@@ -166,7 +233,8 @@ export class PlayerDefense {
     const rollDC = PlayerDefense.#getDefenseDC(totalModifier);
     const { targets, item, attacker } = attack;
     game.PlayerDefense.lastAttack = null;
-        const defenseTargets = PlayerDefense.#buildDefenseTargets(targets, rollDC, attacker, item.attack.def.toUpperCase());
+    const { attack: attackData } = PlayerDefense.#getPowerDamageData(item);
+    const defenseTargets = PlayerDefense.#buildDefenseTargets(targets, rollDC, attacker, attackData.def?.toUpperCase() ?? "?", item);
     Logger.info("Intercepting NPC attack", { messageId: message.id, attackerId: attacker.id, itemId: item.id, targetIds: defenseTargets.map(target => target.actorId), rollFormula, totalModifier, rollDC });
     PlayerDefense.#createDefenseMessage(attacker, item, defenseTargets);
     return false;
@@ -184,9 +252,11 @@ export class PlayerDefense {
     if (attacker?.type !== "NPC") {
       return;
     }
+
+    const itemId = item.id ?? item._id;
     const targetsData = target.targets.map((token, index) => ({ token, defenseMod: target.targDefValArray[index] - 10 }));
     game.PlayerDefense.lastAttack = { item, targets: targetsData, attacker };
-    Logger.info("Captured NPC attack", { attackerId: attacker.id, itemId: item.id, targetIds: targetsData.map(targetData => targetData.token.actor.id), defenseModifiers: targetsData.map(targetData => targetData.defenseMod) });
+    Logger.info("Captured NPC attack", { attackerId: attacker.id, itemId, targetIds: targetsData.map(targetData => targetData.token.actor.id), defenseModifiers: targetsData.map(targetData => targetData.defenseMod) });
   }
 
     /**
@@ -262,9 +332,11 @@ export class PlayerDefense {
       await game.dice3d.showForRoll(roll, game.user, true);
     }
 
-    const resultHtml = PlayerDefense.#getDefenseResultHtml(diceResult, totalResult, target.rollDC);
+    const { outcome, resultHtml } = PlayerDefense.#getDefenseResult(diceResult, totalResult, target.rollDC);
+    const effectHtml = PlayerDefense.#getOutcomeEffectHtml(target, outcome);
     const rollHtml = `<pg>${await roll.render()}</pg>`;
-    Logger.info("Resolved defense roll", { messageId: message.id, actorId: target.actorId, targetId: target.id, defenseMod: target.defenseMod, rollDC: target.rollDC, diceResult, totalResult });
-    await socket.executeAsGM("resolveDefenseTarget", message.id, target.id, resultHtml + rollHtml);
+    
+    Logger.info("Resolved defense roll", { messageId: message.id, actorId: target.actorId, targetId: target.id, defenseMod: target.defenseMod, rollDC: target.rollDC, diceResult, totalResult, outcome });
+    await socket.executeAsGM("resolveDefenseTarget", message.id, target.id, outcome, resultHtml + rollHtml + effectHtml);
   }
 }

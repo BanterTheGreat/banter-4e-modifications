@@ -66,29 +66,115 @@ export class SocketHelper {
     }
 
     /**
-     * Replaces a target's awaiting placeholder with its defense result.
+     * Replaces a target's awaiting placeholder with its defense result and rolls
+     * each applicable damage type once after every defense has resolved.
      *
      * @param {string} messageId
      * @param {string} targetId
+     * @param {"normal"|"critical"|"miss"} outcome
      * @param {string} resultHtml
      * @returns {Promise<boolean>}
      */
-    static async resolveDefenseTarget(messageId, targetId, resultHtml) {
+    static async resolveDefenseTarget(messageId, targetId, outcome, resultHtml) {
         return SocketHelper.#queueUpdate(async () => {
             const message = game.messages.get(messageId);
             const defense = message?.flags?.playerDefense;
             const targets = defense?.targets;
             const target = targets?.find(entry => entry.id === targetId);
 
-            if (!target) {
+            if (!target || target.resolved || !["normal", "critical", "miss"].includes(outcome)) {
                 return false;
             }
 
             const marker = `<span data-player-defense-result="${targetId}"><em>Awaiting defense...</em></span>`;
             const content = message.content.replace(marker, resultHtml);
-            await message.update({ content });
-            Logger.info("Resolved defense target", { messageId, targetId });
+            target.resolved = true;
+            target.outcome = outcome;
+
+            const damageRolled = defense.damageRolled ?? { normal: false, critical: false, miss: false };
+            const damageGroups = SocketHelper.#getDamageGroups(targets, defense, damageRolled);
+            damageGroups.forEach(group => damageRolled[group] = true);
+            await message.update({ content, flags: { ...message.flags, playerDefense: { ...defense, targets, damageRolled } } });
+            Logger.info("Resolved defense target", { messageId, targetId, outcome });
+
+            for (const group of damageGroups) {
+                await SocketHelper.#rollDefenseDamage(defense, group, messageId);
+            }
             return true;
         });
+    }
+
+    /**
+     * Returns unrolled damage groups once all defense rolls have resolved.
+     *
+     * @param {object[]} targets
+     * @param {object} defense
+     * @param {{normal: boolean, critical: boolean, miss: boolean}} damageRolled
+     * @returns {Array<"normal"|"critical"|"miss">}
+     */
+    static #getDamageGroups(targets, defense, damageRolled) {
+        if (!targets.every(target => target.resolved)) {
+            return [];
+        }
+
+        const groups = [];
+        if (defense.hasDamage && targets.some(target => target.outcome === "normal") && !damageRolled.normal) {
+            groups.push("normal");
+        }
+        if (defense.hasDamage && targets.some(target => target.outcome === "critical") && !damageRolled.critical) {
+            groups.push("critical");
+        }
+        if (defense.hasDamage && defense.hasMissDamage && targets.some(target => target.outcome === "miss") && !damageRolled.miss) {
+            groups.push("miss");
+        }
+        return groups;
+    }
+
+    /**
+     * Starts the appropriate DnD4e damage workflow for a completed attack.
+     * Critical and miss damage use the system dialog because v0.7.14 exposes no
+     * supported API to select either variant programmatically.
+     *
+     * @param {object} defense
+     * @param {"normal"|"critical"|"miss"} group
+     * @param {string} messageId
+     * @returns {Promise<void>}
+     */
+    static async #rollDefenseDamage(defense, group, messageId) {
+        const attacker = game.actors.get(defense.attackerId);
+        const item = attacker?.items.get(defense.itemId) ?? attacker?.items.find(candidate => candidate.name === defense.itemName);
+        if (!item) {
+            Logger.error("Could not find the attacking item for defense damage", { messageId, attackerId: defense.attackerId, itemId: defense.itemId, itemName: defense.itemName, group });
+            return;
+        }
+
+        Logger.info("Rolling defense damage", { messageId, attackerId: attacker.id, itemId: item.id, group });
+        if (group === "normal") {
+            await item.rollDamage({ fastForward: true });
+            return;
+        }
+
+        if (group === "miss") {
+            await SocketHelper.#rollMissDamage(item, defense.missDamage);
+            return;
+        }
+
+        await item.rollDamage();
+    }
+
+    /**
+     * Supplies the miss configuration captured from the attack hook while the
+     * legacy DnD4e damage dialog is being constructed. The embedded actor item
+     * does not always retain this data, but its dialog requires it to display
+     * the Miss action.
+     *
+     * @param {Item} item
+     * @param {{halfDamage?: boolean, formula?: string}} missDamage
+     * @returns {Promise<unknown>}
+     */
+    static async #rollMissDamage(item, missDamage = {}) {
+        const miss = foundry.utils.mergeObject(foundry.utils.deepClone(item.system.miss), missDamage, { inplace: false });
+        const missDamageItem = item.clone({ system: { miss } }, { keepId: true });
+        return missDamageItem.rollDamage();
     }
 }

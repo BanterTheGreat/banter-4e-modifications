@@ -39,6 +39,12 @@ export class Logger {
         // Log errors to console regardless of debug logging setting.
         const formattedMessage = Logger.formatMessage(message, context);
         ui.notifications[level](formattedMessage, {console: false});
+
+        if (level === "warn") {
+            console.warn(formattedMessage);
+        } else if (level === "error") {
+            console.error(formattedMessage);
+        }
     }
 
     static info(message, context) {
