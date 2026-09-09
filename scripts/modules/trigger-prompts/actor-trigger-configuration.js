@@ -13,14 +13,26 @@ export class ActorTriggerConfiguration {
   /** @param {Actor} actor @param {object} trigger */
   static resolveAbility(actor, trigger) {
     const entry = ActorTriggerConfiguration.#entries(actor)[trigger.id];
-    return actor.items.get(entry?.itemId) ?? actor.items.find(item => item.name?.toLowerCase() === trigger.defaultAbilityName.toLowerCase());
+    if (entry?.itemId) {
+      const item = actor.items.get(entry.itemId);
+      return item?.type === "power" ? item : undefined;
+    }
+
+    if (actor.type === "NPC") {
+      return actor.items.find(item => ActorTriggerConfiguration.#isBasicAttack(item));
+    }
+
+    return actor.items.find(item => item.name?.toLowerCase() === trigger.defaultAbilityName.toLowerCase());
   }
 
   /** @param {Actor} actor */
   static show(actor) {
     const config = ActorTriggerConfiguration.#entries(actor);
-    const itemOptions = [...actor.items].map(item => `<option value="${item.id}">${foundry.utils.escapeHTML(item.name)}</option>`).join("");
-    const rows = TRIGGERS.map(trigger => ActorTriggerConfiguration.#row(trigger, config[trigger.id], itemOptions)).join("");
+    const itemOptions = actor.items
+      .filter(item => item.type === "power")
+      .map(item => `<option value="${item.id}">${foundry.utils.escapeHTML(item.name)}</option>`)
+      .join("");
+    const rows = TRIGGERS.map(trigger => ActorTriggerConfiguration.#row(actor, trigger, config[trigger.id], itemOptions)).join("");
 
     new Dialog({
       title: `${actor.name}: Trigger prompts`,
@@ -28,7 +40,7 @@ export class ActorTriggerConfiguration {
       buttons: { save: { label: "Save", callback: html => ActorTriggerConfiguration.#save(actor, html.find("form")[0]) } },
       default: "save",
       render: html => ActorTriggerConfiguration.#selectConfiguredItems(html, config),
-    }).render(true);
+    }, { width: 640 }).render(true);
   }
 
   /** @param {Actor} actor */
@@ -36,12 +48,33 @@ export class ActorTriggerConfiguration {
     return actor.getFlag(MODULE_NAME, TRIGGER_CONFIGURATION_FLAG) ?? {};
   }
 
-  /** @param {object} trigger @param {object} entry @param {string} itemOptions */
-  static #row(trigger, entry = {}, itemOptions) {
+  /** @param {Actor} actor @param {object} trigger @param {object} entry @param {string} itemOptions */
+  static #row(actor, trigger, entry = {}, itemOptions) {
     const enabled = entry.enabled ? "checked" : "";
-    const toggle = trigger.configurable ? `<label><input type="checkbox" name="${trigger.id}.enabled" ${enabled}> Enable</label>` : "Always active";
-    const options = `<option value="">Use default: ${trigger.defaultAbilityName}</option>${itemOptions}`;
-    return `<div class="form-group"><label>${trigger.label}</label>${toggle}<select name="${trigger.id}.itemId">${options}</select><p class="hint">${trigger.description}</p></div>`;
+    const toggle = trigger.configurable
+      ? `<input class="trigger-prompts-config__enabled" type="checkbox" name="${trigger.id}.enabled" ${enabled} title="Enable ${trigger.label}" aria-label="Enable ${trigger.label}">`
+      : "";
+    const options = `<option value="">Use default: ${ActorTriggerConfiguration.#defaultAbilityLabel(actor, trigger)}</option>${itemOptions}`;
+    return `<section class="trigger-prompts-config__row">
+      <div class="trigger-prompts-config__details">
+        <strong>${trigger.label}</strong>
+        <p class="hint">${trigger.description}</p>
+      </div>
+      <div class="trigger-prompts-config__controls">
+        ${toggle}
+        <select name="${trigger.id}.itemId">${options}</select>
+      </div>
+    </section>`;
+  }
+
+  /** @param {Actor} actor @param {object} trigger */
+  static #defaultAbilityLabel(actor, trigger) {
+    return actor.type === "NPC" ? "First Basic Attack" : trigger.defaultAbilityName;
+  }
+
+  /** @param {Item} item */
+  static #isBasicAttack(item) {
+    return item.type === "power" && item.system?.subName === "Basic Attack";
   }
 
   /** @param {Actor} actor @param {HTMLFormElement} form */

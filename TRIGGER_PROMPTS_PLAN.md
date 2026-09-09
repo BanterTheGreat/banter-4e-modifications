@@ -39,9 +39,9 @@ initial release provides possible opportunity-attack and enemy-miss prompts.
 
 ## Initial detection rules
 
-- Possible OA: when a hostile combatant changes position beginning adjacent to
-  an eligible actor, emit one prompt for that actor, even if the mover ends
-  adjacent. Each eligible actor receives its own prompt.
+- Possible OA: when a hostile combatant's straight grid movement starts or
+  passes adjacent to an eligible actor, emit one prompt for that actor. Ending
+  adjacent alone does not qualify. Each eligible actor receives its own prompt.
 - Enemy miss: derive each defender's result from DnD4e's structured standard
   attack workflow and target-defense values (including natural 1/20 when
   available). A miss against one target still qualifies even if other targets

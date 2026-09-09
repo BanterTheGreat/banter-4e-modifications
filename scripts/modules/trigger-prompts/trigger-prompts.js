@@ -61,7 +61,7 @@ export class TriggerPrompts {
     if (!game.user.isGM || !game.TriggerPrompts || (changes.x === undefined && changes.y === undefined)) {
       return;
     }
-    await game.TriggerPrompts.dispatcher.evaluateMovement(document);
+    await game.TriggerPrompts.dispatcher.evaluateMovement(document, changes);
   }
 
   /** @param {object} app @param {object[]} buttons */
@@ -71,6 +71,30 @@ export class TriggerPrompts {
       return;
     }
     buttons.unshift({ class: TRIGGER_PROMPT_UI.CONFIG_CLASS, icon: "fas fa-bolt", label: "Trigger prompts", onclick: () => ActorTriggerConfiguration.show(actor) });
+  }
+
+  /**
+   * Adds the configuration control to Foundry v13 ApplicationV2 actor sheets.
+   *
+   * @param {object} app
+   * @param {object[]} controls
+   */
+  static onGetHeaderControlsApplicationV2(app, controls) {
+    const actor = app.document;
+    if (!actor || actor.documentName !== "Actor" || !game.user.isGM && !actor.isOwner) {
+      return;
+    }
+    if (controls.some(control => control.action === TRIGGER_PROMPT_UI.CONFIG_ACTION)) {
+      return;
+    }
+
+    controls.unshift({
+      label: "Trigger prompts",
+      icon: "fas fa-bolt",
+      class: TRIGGER_PROMPT_UI.CONFIG_CLASS,
+      action: TRIGGER_PROMPT_UI.CONFIG_ACTION,
+      onClick: () => ActorTriggerConfiguration.show(actor),
+    });
   }
 
   /** @param {ChatMessage} message @param {JQuery} html */

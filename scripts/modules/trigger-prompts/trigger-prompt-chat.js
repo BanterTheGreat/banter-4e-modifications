@@ -13,7 +13,7 @@ export class TriggerPromptChat {
     await ChatMessage.create({
       whisper: recipientIds,
       flavor: `<b>${foundry.utils.escapeHTML(trigger.label)}</b>`,
-      content: `<p>${foundry.utils.escapeHTML(context.detail)}</p><button data-trigger-prompt-action="${TRIGGER_PROMPT_ACTION.USE}">${foundry.utils.escapeHTML(item.name)}</button><button data-trigger-prompt-action="${TRIGGER_PROMPT_ACTION.DISMISS}">${TRIGGER_PROMPT_UI.DISMISS_LABEL}</button>`,
+      content: `<p>${foundry.utils.escapeHTML(context.detail)}</p><div class="${TRIGGER_PROMPT_UI.PROMPT_ACTIONS_CLASS}"><button data-trigger-prompt-action="${TRIGGER_PROMPT_ACTION.USE}">${foundry.utils.escapeHTML(item.name)}</button><button data-trigger-prompt-action="${TRIGGER_PROMPT_ACTION.DISMISS}">${TRIGGER_PROMPT_UI.DISMISS_LABEL}</button></div>`,
       flags: { [TRIGGER_PROMPT_FLAG]: { triggerId: trigger.id, actorId: actor.id, itemId: item.id, recipientIds, used: false } },
     });
   }
@@ -25,7 +25,7 @@ export class TriggerPromptChat {
       return;
     }
     if (prompt.used) {
-      html.find("[data-trigger-prompt-action]").prop("disabled", true);
+      html.find("[data-trigger-prompt-action]").remove();
       return;
     }
     html.find(`[data-trigger-prompt-action='${TRIGGER_PROMPT_ACTION.USE}']`).on("click", async event => {
@@ -44,11 +44,18 @@ export class TriggerPromptChat {
     if (!prompt) {
       return;
     }
-    const item = game.actors.get(prompt.actorId)?.items.get(prompt.itemId);
-    if (!item?.toChat) {
-      Logger.warn("Selected trigger prompt item cannot post a chat card", { messageId: message.id, actorId: prompt.actorId, itemId: prompt.itemId });
+    const actor = game.actors.get(prompt.actorId);
+    const item = actor?.items.get(prompt.itemId);
+    if (!item?.roll) {
+      Logger.warn("Selected trigger prompt item cannot create a chat card", { messageId: message.id, actorId: prompt.actorId, itemId: prompt.itemId });
       return;
     }
-    await item.toChat();
+
+    if (item.type === "power" && actor.usePower) {
+      await actor.usePower(item, { configureDialog: false });
+      return;
+    }
+
+    await item.roll({ configureDialog: false });
   }
 }

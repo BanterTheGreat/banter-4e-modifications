@@ -73,7 +73,9 @@ export class PlayerDefense {
       return {
         id: `${actor.id}-${index}`,
         actorId: actor.id,
-                actorName: actor.name,
+        tokenId: target.token.id,
+        sceneId: target.token.document?.parent?.id ?? target.token.scene?.id ?? canvas.scene?.id ?? null,
+        actorName: actor.name,
                 attackerName: attacker.name,
                 defenseStat,
                 defenseMod: target.defenseMod,
@@ -258,6 +260,8 @@ export class PlayerDefense {
       return;
     }
 
+    const attackerCombatant = game.combat?.combatants.find(combatant => combatant.actorId === attacker.id);
+
     const itemId = item.id ?? item._id;
     const targetsData = target.targets
       .map((token, index) => ({ token, defenseMod: target.targDefValArray[index] - 10 }))
@@ -271,8 +275,8 @@ export class PlayerDefense {
       item,
       targets: targetsData,
       attacker,
-      attackerTokenId: speaker.token ?? null,
-      sceneId: canvas.scene?.id ?? null,
+      attackerTokenId: attackerCombatant?.tokenId ?? speaker.token ?? null,
+      sceneId: attackerCombatant?.sceneId ?? canvas.scene?.id ?? null,
     };
     Logger.info("Captured NPC attack", { attackerId: attacker.id, itemId, targetIds: targetsData.map(targetData => targetData.token.actor.id), defenseModifiers: targetsData.map(targetData => targetData.defenseMod) });
   }

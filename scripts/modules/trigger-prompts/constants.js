@@ -34,5 +34,7 @@ export const DEFAULT_ABILITY_NAME = Object.freeze({
 /** DOM class names and visible control labels owned by this submodule. */
 export const TRIGGER_PROMPT_UI = Object.freeze({
   CONFIG_CLASS: "trigger-prompts-config",
-  DISMISS_LABEL: "No",
+  CONFIG_ACTION: "configure-trigger-prompts",
+  PROMPT_ACTIONS_CLASS: "trigger-prompts-message__actions",
+  DISMISS_LABEL: "Ignore",
 });

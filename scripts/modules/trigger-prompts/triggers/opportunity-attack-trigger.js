@@ -2,7 +2,7 @@ import { CombatTrigger } from "./combat-trigger.js";
 import { DEFAULT_ABILITY_NAME, TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
 
 /**
- * Detects hostile movement that begins adjacent to a configured actor.
+ * Detects hostile movement that starts or passes adjacent to a configured actor.
  */
 export class OpportunityAttackTrigger extends CombatTrigger {
   constructor() {
@@ -11,7 +11,7 @@ export class OpportunityAttackTrigger extends CombatTrigger {
       label: "Possible opportunity attack",
       configurable: false,
       defaultAbilityName: DEFAULT_ABILITY_NAME.MELEE_BASIC_ATTACK,
-      description: "A hostile combatant starts moving adjacent to this actor.",
+      description: "A hostile combatant's movement starts or passes adjacent to this actor; ending adjacent alone does not qualify.",
     });
   }
 
@@ -29,11 +29,11 @@ export class OpportunityAttackTrigger extends CombatTrigger {
     return services.combatants
       .filter(combatant => combatant.id !== event.combatant.id && combatant.sceneId === event.sceneId)
       .map(combatant => services.getToken(combatant.sceneId, combatant.tokenId))
-      .filter(candidate => candidate && services.areHostile(mover, candidate) && services.areAdjacent(mover, candidate))
+      .filter(candidate => candidate && services.areHostile(mover, candidate) && services.movesAdjacent(mover, event.destination, candidate))
       .map(candidate => ({
         actor: candidate.actor,
         sourceName: mover.name,
-        detail: `${mover.name} started moving adjacent to ${candidate.name}.`,
+        detail: `${mover.name} moved adjacent to ${candidate.name}.`,
       }));
   }
 }

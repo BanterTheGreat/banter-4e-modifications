@@ -85,6 +85,7 @@ Hooks.on("i18nInit", () => {
     Hooks.on("preCreateChatMessage", message => TriggerPrompts.onPowerChatMessage(message, socket));
     Hooks.on("preUpdateToken", TriggerPrompts.onPreUpdateToken);
     Hooks.on("getActorSheetHeaderButtons", TriggerPrompts.onGetActorSheetHeaderButtons);
+    Hooks.on("getHeaderControlsApplicationV2", TriggerPrompts.onGetHeaderControlsApplicationV2);
     Hooks.on("renderChatMessage", (message, html) => TriggerPrompts.onRenderChatMessage(message, html));
   }
 });
