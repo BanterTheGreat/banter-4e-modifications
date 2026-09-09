@@ -11,7 +11,7 @@ Hooks.on("i18nInit", () => {
   // Register Settings
   game.settings.register(MODULE_NAME, ENABLE_ACTIVE_DEFENSE, {
     name: "Enable active defense",
-    description: "Allows players to click a defend button in the chat for attack rolls against them.",
+    description: "Prompts players to defend against NPC attack rolls in a dialog.",
     scope: "world",
     config: true,
     type: Boolean,
@@ -34,7 +34,14 @@ Hooks.once("socketlib.ready", () => {
   socket = socketlib.registerModule("banter-4e-modifications");
   socket.register("deleteMessage", SocketHelper.deleteMessage);
   socket.register("updateMessage", SocketHelper.updateMessage);
-  socket.register("updateMessageContentWithDelay", SocketHelper.updateMessageContentWithDelay);
+  socket.register("attemptDefenseDialog", SocketHelper.attemptDefenseDialog);
+  socket.register("resolveDefenseTarget", SocketHelper.resolveDefenseTarget);
+});
+
+Hooks.once("ready", () => {
+  if (game.settings.get(MODULE_NAME, ENABLE_ACTIVE_DEFENSE) && !globalThis.socketlib) {
+    ui.notifications.error("Banter's 4e Modifications requires the SocketLib module to be installed and enabled for Player Defense.");
+  }
 });
 
 Hooks.on("ready", () => game.BeaconBackgrounds = new BeaconBackgrounds());
@@ -54,7 +61,7 @@ Hooks.on("i18nInit", () => {
     Hooks.on("ready", () => game.PlayerDefense = new PlayerDefense());
     Hooks.on("dnd4e.rollAttack", PlayerDefense.OnRollAttack);
     Hooks.on("preCreateChatMessage", PlayerDefense.OnPowerChatMessage);
-    Hooks.on("renderChatMessage", (message, html) => PlayerDefense.onClickDefendButton(message, html, socket));
+    Hooks.on("renderChatMessage", message => PlayerDefense.onRenderDefenseMessage(message, socket));
   } else {
   }
 });
