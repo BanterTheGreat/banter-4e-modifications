@@ -3,6 +3,9 @@ import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
 
 /**
  * Detects hostile movement that starts or passes adjacent to a configured actor.
+ *
+ * Candidate actors are found from the combat roster; assignment resolution
+ * later chooses each actor's DnD4e-marked opportunity powers.
  */
 export class OpportunityAttackTrigger extends CombatTrigger {
   constructor() {
@@ -13,7 +16,13 @@ export class OpportunityAttackTrigger extends CombatTrigger {
     });
   }
 
-  /** @inheritdoc */
+  /**
+   * Returns each hostile combatant adjacent during the movement path.
+   *
+   * @param {object} event
+   * @param {object} services
+   * @returns {Array<{actor: Actor, sourceName: string, detail: string}>}
+   */
   evaluate(event, services) {
     if (event.type !== TRIGGER_EVENT_TYPE.MOVEMENT) {
       return [];

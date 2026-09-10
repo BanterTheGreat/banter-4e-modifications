@@ -61,6 +61,7 @@ Hooks.once("socketlib.ready", () => {
   socket.register("resolveDefenseTarget", SocketHelper.resolveDefenseTarget);
   socket.register(TRIGGER_SOCKET_ACTION.EVALUATE_ATTACK, TriggerPrompts.evaluateAttackFromSocket);
   socket.register(TRIGGER_SOCKET_ACTION.CLAIM_PROMPT, SocketHelper.claimTriggerPrompt);
+  socket.register(TRIGGER_SOCKET_ACTION.EXPIRE_PROMPT, SocketHelper.expireTriggerPrompt);
   socket.register("setMarkOwner", MarkOwnershipStore.assign);
   socket.register("removeMarksForCombatant", MarkOwnershipStore.removeForCombatant);
   socket.register("removeMarksForCombat", MarkOwnershipStore.removeForCombat);

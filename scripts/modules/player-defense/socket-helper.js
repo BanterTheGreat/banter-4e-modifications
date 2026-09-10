@@ -140,6 +140,29 @@ export class SocketHelper {
     }
 
     /**
+     * Deletes a still-unclaimed trigger prompt after its response window ends.
+     * The same serialized queue as prompt claims ensures a choice made at the
+     * deadline wins over expiry.
+     *
+     * @param {string} messageId
+     *   Trigger prompt message to expire.
+     * @returns {Promise<boolean>}
+     *   Whether an unclaimed prompt was deleted.
+     */
+    static async expireTriggerPrompt(messageId) {
+        return SocketHelper.#queueUpdate(async () => {
+            const message = game.messages.get(messageId);
+            const prompt = message?.flags?.[TRIGGER_PROMPT_FLAG];
+            if (!prompt || prompt.used) {
+                return false;
+            }
+
+            await message.delete();
+            return true;
+        });
+    }
+
+    /**
      * Returns unrolled damage groups once all defense rolls have resolved.
      *
      * @param {object[]} targets

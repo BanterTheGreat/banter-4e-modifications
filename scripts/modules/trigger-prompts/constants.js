@@ -1,4 +1,9 @@
-/** Immutable identifiers shared by trigger dispatch, storage, and chat UI. */
+/**
+ * Stable trigger identifiers persisted in actor configuration and prompt flags.
+ *
+ * Do not change an existing value without a migration: worlds store these IDs
+ * in actor flags.
+ */
 export const TRIGGER_ID = Object.freeze({
   OPPORTUNITY_ATTACK: "opportunity-attack",
   ENEMY_MISSES_YOU: "enemy-misses-you",
@@ -8,37 +13,53 @@ export const TRIGGER_ID = Object.freeze({
   MARKED_CREATURE_SHIFTS_ADJACENT: "marked-creature-moves-adjacent",
 });
 
-/** Event types accepted by CombatTrigger.evaluate. */
+/**
+ * Event categories emitted by the dispatcher and consumed by trigger
+ * definitions. Each category has a different event-data shape.
+ */
 export const TRIGGER_EVENT_TYPE = Object.freeze({
   MOVEMENT: "movement",
   ATTACK_RESULT: "attack-result",
   BLOODIED: "bloodied",
 });
 
-/** Actions exposed by a private trigger-prompt chat card. */
+/** Actions exposed by a private trigger-prompt chat card's data attributes. */
 export const TRIGGER_PROMPT_ACTION = Object.freeze({
   USE: "use",
   DISMISS: "dismiss",
 });
 
-/** Module-owned flag keys. */
+/** Flag namespace used on private prompt chat messages. */
 export const TRIGGER_PROMPT_FLAG = "triggerPrompts";
+/** Flag namespace used on actors for persistent trigger configuration. */
 export const TRIGGER_CONFIGURATION_FLAG = "trigger-prompts";
+/** Time for which a recipient may select one power from a prompt. */
+export const TRIGGER_PROMPT_TIMEOUT_MS = 10_000;
 
-/** SocketLib handler names used by the trigger-prompt submodule. */
+/**
+ * SocketLib handler names used by the trigger-prompt submodule.
+ *
+ * Evaluation and mutable chat-message operations are routed through a GM so
+ * the authoritative client creates, claims, and expires prompts.
+ */
 export const TRIGGER_SOCKET_ACTION = Object.freeze({
   EVALUATE_ATTACK: "evaluateTriggerAttack",
   CLAIM_PROMPT: "claimTriggerPrompt",
+  EXPIRE_PROMPT: "expireTriggerPrompt",
 });
 
-/** Virtual selections supported by trigger ability configuration. */
+/**
+ * Legacy virtual power selections understood during configuration migration.
+ *
+ * New configuration stores a concrete assignment for each selected power.
+ */
 export const ABILITY_SELECTION = Object.freeze({
   BASIC_ATTACKS: "basic-attacks",
   OPPORTUNITY_ATTACKS: "opportunity-attacks",
   ITEM_PREFIX: "item:",
 });
 
-/** DOM class names and visible control labels owned by this submodule. */
+/** DOM hooks and user-facing labels rendered by Trigger Prompt dialogs/cards. */
 export const TRIGGER_PROMPT_UI = Object.freeze({
   CONFIG_CLASS: "trigger-prompts-config",
   CONFIG_ACTION: "configure-trigger-prompts",

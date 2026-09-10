@@ -5,7 +5,14 @@ import { EnemyHitSelfTrigger } from "./triggers/enemy-hit-self-trigger.js";
 import { MarkedCreatureBloodiedTrigger } from "./triggers/marked-creature-bloodied-trigger.js";
 import { MarkedCreatureMovesAdjacentTrigger } from "./triggers/marked-creature-moves-adjacent-trigger.js";
 
-/** @type {Array<object>} */
+/**
+ * All trigger definitions supported by the submodule.
+ *
+ * Registry order determines the order in which attack-result prompts are
+ * evaluated and delivered.
+ *
+ * @type {Array<import("./triggers/combat-trigger.js").CombatTrigger>}
+ */
 export const TRIGGERS = [
   new OpportunityAttackTrigger(),
   new EnemyMissSelfTrigger(),
@@ -16,8 +23,12 @@ export const TRIGGERS = [
 ];
 
 /**
+ * Looks up a trigger definition by its persisted identifier.
+ *
  * @param {string} id
- * @returns {object|undefined}
+ *   Stable trigger identifier from {@link TRIGGER_ID}.
+ * @returns {import("./triggers/combat-trigger.js").CombatTrigger|undefined}
+ *   The registered definition, when the ID is supported.
  */
 export function getTrigger(id) {
   return TRIGGERS.find(trigger => trigger.id === id);

@@ -3,6 +3,9 @@ import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
 
 /**
  * Detects an enemy missing a combatant and finds nearby eligible allies.
+ *
+ * Range filtering is intentionally deferred to assignment resolution because
+ * each eligible actor may configure a different range.
  */
 export class EnemyMissTrigger extends CombatTrigger {
   constructor() {
@@ -14,7 +17,13 @@ export class EnemyMissTrigger extends CombatTrigger {
     });
   }
 
-  /** @inheritdoc */
+  /**
+   * Returns the missed target and every allied combatant with distance data.
+   *
+   * @param {object} event
+   * @param {object} services
+   * @returns {Array<{actor: Actor, sourceName: string, detail: string, distanceSquares: number}>}
+   */
   evaluate(event, services) {
     if (event.type !== TRIGGER_EVENT_TYPE.ATTACK_RESULT || event.outcome !== "miss") {
       return [];

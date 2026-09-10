@@ -1,7 +1,12 @@
 import { CombatTrigger } from "./combat-trigger.js";
 import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
 
-/** Detects a marked creature moving while adjacent to its Mark owner. */
+/**
+ * Detects a marked creature moving while adjacent to its Mark owner.
+ *
+ * The movement-path test is shared with opportunity attacks, so moving from
+ * adjacency qualifies even when the creature's final square is not adjacent.
+ */
 export class MarkedCreatureMovesAdjacentTrigger extends CombatTrigger {
   constructor() {
     super({
@@ -11,7 +16,13 @@ export class MarkedCreatureMovesAdjacentTrigger extends CombatTrigger {
     });
   }
 
-  /** @inheritdoc */
+  /**
+   * Returns the Mark owner when its marked creature moves while adjacent.
+   *
+   * @param {object} event
+   * @param {object} services
+   * @returns {Array<{actor: Actor, sourceName: string, detail: string}>}
+   */
   evaluate(event, services) {
     if (event.type !== TRIGGER_EVENT_TYPE.MOVEMENT) {
       return [];

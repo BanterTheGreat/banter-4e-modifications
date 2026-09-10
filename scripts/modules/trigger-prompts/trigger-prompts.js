@@ -7,11 +7,16 @@ import { TriggerPromptChat } from "./trigger-prompt-chat.js";
 /**
  * Foundry hook adapter for the trigger-prompt submodule.
  *
- * The adapter translates Foundry events into the small interfaces of the
- * dispatcher, actor configuration, and private chat modules.
+ * The adapter records the DnD4e attack hook until its chat message is created,
+ * then translates Foundry events into the dispatcher, configuration, and
+ * private-chat module interfaces.
  */
 export class TriggerPrompts {
-  /** @param {object} socket */
+  /**
+   * @param {object} socket
+   *   Registered SocketLib module used to evaluate player-originated attacks
+   *   on the primary GM.
+   */
   constructor(socket) {
     this.socket = socket;
     this.lastAttack = null;
@@ -19,7 +24,14 @@ export class TriggerPrompts {
     this.dispatcher = new CombatTriggerDispatcher(this.promptChat);
   }
 
-  /** @param {Item} item @param {object} target @param {object} speaker */
+  /**
+   * Captures DnD4e's attack metadata before the corresponding chat message is
+   * created. The subsequent message hook adds the final roll total.
+   *
+   * @param {Item} item
+   * @param {object} target
+   * @param {object} speaker
+   */
   static onRollAttack(item, target, speaker) {
     if (!game.TriggerPrompts) {
       return;
@@ -39,7 +51,12 @@ export class TriggerPrompts {
     };
   }
 
-  /** @param {ChatMessage} message @param {object} socket */
+  /**
+   * Completes a captured attack with its d20 result and sends it to the GM.
+   *
+   * @param {ChatMessage} message
+   * @param {object} socket
+   */
   static onPowerChatMessage(message, socket) {
     const attack = game.TriggerPrompts?.lastAttack;
     if (!attack || !message.flavor?.includes(attack.itemName) || !message.rolls?.[0]) {
@@ -51,12 +68,23 @@ export class TriggerPrompts {
       .catch(error => Logger.error("Failed to evaluate trigger attack", { error: error.message }));
   }
 
-  /** @param {object} context */
+  /**
+   * SocketLib entry point that evaluates an attack on the authoritative GM.
+   *
+   * @param {object} context
+   * @returns {Promise<void>}
+   */
   static async evaluateAttackFromSocket(context) {
     await game.TriggerPrompts?.dispatcher.evaluateAttack(context);
   }
 
-  /** @param {TokenDocument} document @param {object} changes */
+  /**
+   * Evaluates movement triggers before a token's coordinates are changed.
+   *
+   * @param {TokenDocument} document
+   * @param {object} changes
+   * @returns {Promise<void>}
+   */
   static async onPreUpdateToken(document, changes) {
     if (!game.user.isGM || !game.TriggerPrompts || (changes.x === undefined && changes.y === undefined)) {
       return;
@@ -71,18 +99,24 @@ export class TriggerPrompts {
    * @param {Actor} actor
    * @param {object} changes
    * @param {object} options
+   * @returns {Promise<void>}
    */
   static async onUpdateActor(actor, changes, options) {
     await game.TriggerPrompts?.dispatcher.evaluateBloodied(actor, changes, options);
   }
 
-  /** @param {object} app @param {object[]} buttons */
+  /**
+   * Adds the trigger-configuration control to legacy actor sheets.
+   *
+   * @param {object} app
+   * @param {object[]} buttons
+   */
   static onGetActorSheetHeaderButtons(app, buttons) {
     const actor = app.actor;
     if (!actor || !game.user.isGM && !actor.isOwner) {
       return;
     }
-    buttons.unshift({ class: TRIGGER_PROMPT_UI.CONFIG_CLASS, icon: "fas fa-bolt", label: "Trigger prompts", onclick: () => ActorTriggerConfiguration.show(actor) });
+    buttons.unshift({ class: TRIGGER_PROMPT_UI.CONFIG_CLASS, icon: "fas fa-bolt", label: "Trigger prompts", onclick: () => ActorTriggerConfiguration.showActorDialog(actor) });
   }
 
   /**
@@ -105,21 +139,36 @@ export class TriggerPrompts {
       icon: "fas fa-bolt",
       class: TRIGGER_PROMPT_UI.CONFIG_CLASS,
       action: TRIGGER_PROMPT_UI.CONFIG_ACTION,
-      onClick: () => ActorTriggerConfiguration.show(actor),
+      onClick: () => ActorTriggerConfiguration.showActorDialog(actor),
     });
   }
 
-  /** @param {ChatMessage} message @param {JQuery} html */
+  /**
+   * Delegates rendered prompt-card controls to the chat module.
+   *
+   * @param {ChatMessage} message
+   * @param {JQuery} html
+   */
   static onRenderChatMessage(message, html) {
     game.TriggerPrompts?.promptChat.bind(message, html);
   }
 
-  /** @param {object} context */
+  /**
+   * Receives a Player Defense miss after its GM-authoritative resolution.
+   *
+   * @param {object} context
+   * @returns {Promise<void>}
+   */
   async onActiveDefenseMiss(context) {
     await this.dispatcher.evaluateActiveDefenseMiss(context);
   }
 
-  /** @param {Roll} roll */
+  /**
+   * Extracts the first active d20 face from a Foundry roll.
+   *
+   * @param {Roll} roll
+   * @returns {number|null}
+   */
   static #naturalD20(roll) {
     const die = roll.dice?.find(candidate => candidate.faces === 20);
     return die?.results?.find(result => result.active !== false)?.result ?? null;

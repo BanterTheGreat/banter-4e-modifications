@@ -2,37 +2,83 @@ import { MODULE_NAME } from "../../shared/globals.js";
 import { ABILITY_SELECTION, TRIGGER_CONFIGURATION_FLAG, TRIGGER_ID, TRIGGER_PROMPT_UI } from "./constants.js";
 import { TRIGGERS } from "./trigger-registry.js";
 
-/** Owns actor-level trigger settings, assignments, and their summary dialog. */
+/**
+ * Persists and resolves an actor's trigger-prompt configuration.
+ *
+ * Configured assignments live on the actor, rather than on the power, because
+ * they describe when an actor may use a power. This class also understands the
+ * legacy selector-based configuration and presents the actor and power dialogs
+ * used to edit the current assignment-based form.
+ */
 export class ActorTriggerConfiguration {
-  /** @param {Actor} actor @param {object} trigger @param {object} context */
-  static assignmentsFor(actor, trigger, context = {}) {
+  /**
+   * Returns the configured powers an actor may use for one evaluated trigger.
+   *
+   * Opportunity attacks are a built-in actor-level option: eligible powers are
+   * derived from DnD4e attack metadata rather than stored as assignments. All
+   * other triggers use persisted assignments and may apply event-specific
+   * constraints, such as the configured range.
+   *
+   * @param {Actor} actor
+   *   Actor receiving a possible prompt.
+   * @param {object} trigger
+   *   Trigger definition being evaluated.
+   * @param {object} [context={}]
+   *   Event data supplied by the trigger, including optional distance data.
+   * @returns {Array<object>}
+   *   Eligible assignments with their resolved power in the `item` property.
+   */
+  static eligibleAssignmentsFor(actor, trigger, context = {}) {
     if (trigger.id === TRIGGER_ID.OPPORTUNITY_ATTACK) {
-      if (!ActorTriggerConfiguration.opportunityAttacksEnabled(actor)) {
+      if (!ActorTriggerConfiguration.isOpportunityAttackPromptEnabled(actor)) {
         return [];
       }
       return actor.items.filter(item => ActorTriggerConfiguration.#isOpportunityAttackPower(actor, item))
         .map(item => ({ id: `opportunity:${item.id}`, itemId: item.id, triggerId: trigger.id, parameters: {}, item }));
     }
-    return ActorTriggerConfiguration.assignments(actor)
+    return ActorTriggerConfiguration.configuredAssignments(actor)
       .filter(assignment => assignment.triggerId === trigger.id)
       .filter(assignment => ActorTriggerConfiguration.#matchesParameters(assignment, trigger, context));
   }
 
-  /** @param {Actor} actor */
-  static assignments(actor) {
+  /**
+   * Reads all persisted trigger assignments whose referenced power still exists.
+   *
+   * @param {Actor} actor
+   *   Actor whose configured powers should be resolved.
+   * @returns {Array<object>}
+   *   Persisted assignment data enriched with its current `item` document.
+   */
+  static configuredAssignments(actor) {
     return ActorTriggerConfiguration.#normalized(actor).assignments
       .map(assignment => ({ ...assignment, item: actor.items.get(assignment.itemId) }))
       .filter(assignment => assignment.item?.type === "power");
   }
 
-  /** @param {Actor} actor */
-  static opportunityAttacksEnabled(actor) {
+  /**
+   * Determines whether this actor should receive automatic opportunity prompts.
+   *
+   * @param {Actor} actor
+   *   Actor whose actor-level option should be read.
+   * @returns {boolean}
+   *   Whether eligible opportunity-attack powers may be prompted.
+   */
+  static isOpportunityAttackPromptEnabled(actor) {
     return ActorTriggerConfiguration.#normalized(actor).opportunityAttack.enabled;
   }
 
-  /** @param {Actor} actor */
-  static show(actor) {
-    const checked = ActorTriggerConfiguration.opportunityAttacksEnabled(actor) ? "checked" : "";
+  /**
+   * Opens the actor-level trigger-prompt configuration dialog.
+   *
+   * This dialog only controls automatic opportunity prompts and summarizes
+   * assignments. Individual power assignments are edited from each power's
+   * configuration dialog.
+   *
+   * @param {Actor} actor
+   *   Actor whose trigger-prompt settings will be displayed and saved.
+   */
+  static showActorDialog(actor) {
+    const checked = ActorTriggerConfiguration.isOpportunityAttackPromptEnabled(actor) ? "checked" : "";
     const opportunityPowers = actor.items.filter(item => ActorTriggerConfiguration.#isOpportunityAttackPower(actor, item));
     const opportunitySummary = opportunityPowers.length
       ? `<ul>${opportunityPowers.map(item => `<li>${foundry.utils.escapeHTML(item.name)}</li>`).join("")}</ul>`
@@ -53,17 +99,22 @@ export class ActorTriggerConfiguration {
     }, { width: 640 }).render(true);
   }
 
-  /** @param {Item} item */
-  static showItem(item) {
+  /**
+   * Opens the per-power dialog for assigning trigger prompts.
+   *
+   * @param {Item} item
+   *   Actor-owned DnD4e power whose assignments will be edited.
+   */
+  static showPowerDialog(item) {
     const actor = item.parent;
     if (!actor || actor.documentName !== "Actor" || item.type !== "power") {
       return;
     }
-    const assignments = new Map(ActorTriggerConfiguration.assignments(actor)
+    const assignments = new Map(ActorTriggerConfiguration.configuredAssignments(actor)
       .filter(assignment => assignment.itemId === item.id).map(assignment => [assignment.triggerId, assignment]));
     const rows = TRIGGERS.filter(trigger => trigger.id !== TRIGGER_ID.OPPORTUNITY_ATTACK)
       .map(trigger => ActorTriggerConfiguration.#itemRow(trigger, assignments.get(trigger.id))).join("");
-    const triggerText = ActorTriggerConfiguration.triggerText(item);
+    const triggerText = ActorTriggerConfiguration.getPowerTriggerText(item);
     const reference = triggerText
       ? `<p class="trigger-prompts-config__reference"><strong>Power trigger:</strong> ${foundry.utils.escapeHTML(triggerText)}</p>`
       : `<p class="hint">This power has no trigger line in its DnD4e data.</p>`;
@@ -73,13 +124,26 @@ export class ActorTriggerConfiguration {
     }, { width: 640 }).render(true);
   }
 
-  /** @param {Item} item */
-  static triggerText(item) {
+  /**
+   * Returns the DnD4e trigger text recorded on a power, if available.
+   *
+   * @param {Item} item
+   *   Power whose system trigger field should be read.
+   * @returns {string}
+   *   Human-readable trigger text, or an empty string when it is absent.
+   */
+  static getPowerTriggerText(item) {
     const trigger = item.system?.trigger;
     return typeof trigger === "string" ? trigger : trigger?.value ?? trigger?.text ?? "";
   }
 
-  /** @param {Item} item */
+  /**
+   * Removes every persisted assignment that references a deleted power.
+   *
+   * @param {Item} item
+   *   Deleted actor-owned power.
+   * @returns {Promise<void>}
+   */
   static async removeAssignmentsForItem(item) {
     const actor = item.parent;
     if (!actor || actor.documentName !== "Actor") {
@@ -92,22 +156,35 @@ export class ActorTriggerConfiguration {
     }
   }
 
-  /** @param {Actor} actor @param {object} trigger */
+  /**
+   * Renders the configured powers for one trigger in the actor-dialog summary.
+   *
+   * @param {Actor} actor
+   * @param {object} trigger
+   * @returns {string}
+   *   Summary markup, or an empty string when no powers are assigned.
+   */
   static #summary(actor, trigger) {
-    const assignments = ActorTriggerConfiguration.assignments(actor).filter(assignment => assignment.triggerId === trigger.id);
+    const assignments = ActorTriggerConfiguration.configuredAssignments(actor).filter(assignment => assignment.triggerId === trigger.id);
     if (!assignments.length) {
       return "";
     }
     const rows = assignments.map(assignment => {
       const rangeSquares = assignment.parameters?.rangeSquares ?? trigger.defaultRangeSquares;
       const range = trigger.defaultRangeSquares === undefined ? "" : ` — Range ${rangeSquares} squares`;
-      const triggerText = ActorTriggerConfiguration.triggerText(assignment.item);
+      const triggerText = ActorTriggerConfiguration.getPowerTriggerText(assignment.item);
       return `<li><strong>${foundry.utils.escapeHTML(assignment.item.name)}</strong>${range}${triggerText ? `<small>${foundry.utils.escapeHTML(triggerText)}</small>` : ""}</li>`;
     }).join("");
     return `<section><h4>${foundry.utils.escapeHTML(trigger.label)}</h4><ul>${rows}</ul></section>`;
   }
 
-  /** @param {object} trigger @param {object} assignment */
+  /**
+   * Renders one assignable trigger row in the power-dialog form.
+   *
+   * @param {object} trigger
+   * @param {object} [assignment]
+   * @returns {string}
+   */
   static #itemRow(trigger, assignment) {
     const checked = assignment ? "checked" : "";
     const range = trigger.defaultRangeSquares === undefined ? "" : `<label class="trigger-prompts-config__range">Range <input type="number" name="${trigger.id}.rangeSquares" min="0" step="1" value="${assignment?.parameters?.rangeSquares ?? trigger.defaultRangeSquares}"> squares</label>`;
@@ -117,13 +194,27 @@ export class ActorTriggerConfiguration {
     </section>`;
   }
 
-  /** @param {Actor} actor @param {HTMLFormElement} form */
+  /**
+   * Saves the actor-level opportunity-prompt option.
+   *
+   * @param {Actor} actor
+   * @param {HTMLFormElement} form
+   * @returns {Promise<void>}
+   */
   static async #saveActor(actor, form) {
     const configuration = ActorTriggerConfiguration.#normalized(actor);
     await actor.setFlag(MODULE_NAME, TRIGGER_CONFIGURATION_FLAG, { ...configuration, opportunityAttack: { enabled: new FormData(form).has("opportunityAttack.enabled") } });
   }
 
-  /** @param {Item} item @param {HTMLFormElement} form */
+  /**
+   * Replaces the edited power's trigger assignments with the submitted values.
+   *
+   * Assignments for all other powers are retained unchanged.
+   *
+   * @param {Item} item
+   * @param {HTMLFormElement} form
+   * @returns {Promise<void>}
+   */
   static async #saveItem(item, form) {
     const actor = item.parent;
     const configuration = ActorTriggerConfiguration.#normalized(actor);
@@ -145,7 +236,14 @@ export class ActorTriggerConfiguration {
     });
   }
 
-  /** @param {object} assignment @param {object} trigger @param {object} context */
+  /**
+   * Checks whether an assignment's optional range permits a prompt.
+   *
+   * @param {object} assignment
+   * @param {object} trigger
+   * @param {object} context
+   * @returns {boolean}
+   */
   static #matchesParameters(assignment, trigger, context) {
     if (trigger.defaultRangeSquares === undefined || !Number.isFinite(context.distanceSquares)) {
       return true;
@@ -154,16 +252,34 @@ export class ActorTriggerConfiguration {
     return context.distanceSquares <= (Number.isFinite(range) && range >= 0 ? range : trigger.defaultRangeSquares);
   }
 
-  /** @param {Actor} actor @param {Item} item */
+  /**
+   * Identifies powers DnD4e permits as opportunity attacks for this actor.
+   *
+   * Legacy DnD4e represents NPC opportunity attacks as Basic Attacks, so NPC
+   * Basic Attacks are included alongside powers explicitly marked as opportunity
+   * attacks.
+   *
+   * @param {Actor} actor
+   * @param {Item} item
+   * @returns {boolean}
+   */
   static #isOpportunityAttackPower(actor, item) {
     if (item.type !== "power") {
       return false;
     }
-    // UGLY NPC HACK: legacy DnD4e records NPC opportunity attacks as Basic Attacks, not as opportunity attacks.
     return item.system?.attack?.isOpp || (actor.type === "NPC" && item.system?.attack?.isBasic);
   }
 
-  /** @param {Actor} actor */
+  /**
+   * Reads the current assignment format or converts legacy selector data into
+   * the current in-memory configuration shape.
+   *
+   * Legacy data is deliberately not written during reads; the next explicit
+   * configuration save persists the current format.
+   *
+   * @param {Actor} actor
+   * @returns {{opportunityAttack: {enabled: boolean}, assignments: Array<object>}}
+   */
   static #normalized(actor) {
     const stored = actor.getFlag(MODULE_NAME, TRIGGER_CONFIGURATION_FLAG) ?? {};
     if (Array.isArray(stored.assignments)) {

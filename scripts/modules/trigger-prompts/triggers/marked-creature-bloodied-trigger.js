@@ -1,7 +1,12 @@
 import { CombatTrigger } from "./combat-trigger.js";
 import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
 
-/** Detects a creature crossing its bloodied threshold while owned by a Mark. */
+/**
+ * Detects a creature crossing its bloodied threshold while owned by a Mark.
+ *
+ * Mark ownership is resolved through the shared ownership store and only an
+ * owner currently represented in combat is eligible.
+ */
 export class MarkedCreatureBloodiedTrigger extends CombatTrigger {
   constructor() {
     super({
@@ -11,7 +16,13 @@ export class MarkedCreatureBloodiedTrigger extends CombatTrigger {
     });
   }
 
-  /** @inheritdoc */
+  /**
+   * Returns the marked token's owner when a bloodied event is eligible.
+   *
+   * @param {object} event
+   * @param {object} services
+   * @returns {Array<{actor: Actor, sourceName: string, detail: string}>}
+   */
   evaluate(event, services) {
     if (event.type !== TRIGGER_EVENT_TYPE.BLOODIED) {
       return [];

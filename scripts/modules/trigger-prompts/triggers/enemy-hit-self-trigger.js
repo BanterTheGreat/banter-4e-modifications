@@ -1,7 +1,11 @@
 import { CombatTrigger } from "./combat-trigger.js";
 import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
 
-/** Detects an enemy hitting the configured actor. */
+/**
+ * Detects an enemy hitting the configured actor.
+ *
+ * Friendly attacks and non-hit attack-result events never produce a context.
+ */
 export class EnemyHitSelfTrigger extends CombatTrigger {
   constructor() {
     super({
@@ -11,7 +15,13 @@ export class EnemyHitSelfTrigger extends CombatTrigger {
     });
   }
 
-  /** @inheritdoc */
+  /**
+   * Returns the hit hostile target as the sole prompt recipient.
+   *
+   * @param {object} event
+   * @param {object} services
+   * @returns {Array<{actor: Actor, sourceName: string, detail: string}>}
+   */
   evaluate(event, services) {
     if (event.type !== TRIGGER_EVENT_TYPE.ATTACK_RESULT || event.outcome !== "hit") {
       return [];

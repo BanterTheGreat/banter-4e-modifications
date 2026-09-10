@@ -3,14 +3,28 @@ import { ActorTriggerConfiguration } from "./actor-trigger-configuration.js";
 import { getTrigger, TRIGGERS } from "./trigger-registry.js";
 import { MarkOwnershipStore } from "../mark-ownership/mark-ownership-store.js";
 
-/** Evaluates combat events on the primary GM and delivers eligible prompts. */
+/**
+ * Evaluates combat events on the primary GM and delivers eligible prompts.
+ *
+ * This is the authority seam for Trigger Prompts: only the elected primary GM
+ * resolves combat documents, evaluates definitions, and creates chat cards.
+ */
 export class CombatTriggerDispatcher {
-  /** @param {import("./trigger-prompt-chat.js").TriggerPromptChat} promptChat */
+  /**
+   * @param {import("./trigger-prompt-chat.js").TriggerPromptChat} promptChat
+   *   Chat-card module used after an actor and its eligible powers are found.
+   */
   constructor(promptChat) {
     this.promptChat = promptChat;
   }
 
-  /** @param {object} context */
+  /**
+   * Evaluates every configured attack-result trigger for each attacked token.
+   *
+   * @param {object} context
+   *   Captured attacker, target, defense, total, and natural-d20 data.
+   * @returns {Promise<void>}
+   */
   async evaluateAttack(context) {
     if (!this.#canEvaluate()) {
       return;
@@ -32,7 +46,14 @@ export class CombatTriggerDispatcher {
     }
   }
 
-  /** @param {TokenDocument} document @param {object} changes */
+  /**
+   * Evaluates movement-based triggers using the token's old position and its
+   * pending destination.
+   *
+   * @param {TokenDocument} document
+   * @param {object} changes
+   * @returns {Promise<void>}
+   */
   async evaluateMovement(document, changes) {
     if (!this.#canEvaluate()) {
       return;
@@ -92,7 +113,12 @@ export class CombatTriggerDispatcher {
     }
   }
 
-  /** @param {object} context */
+  /**
+   * Evaluates a miss produced by the optional Player Defense workflow.
+   *
+   * @param {object} context
+   * @returns {Promise<void>}
+   */
   async evaluateActiveDefenseMiss(context) {
     if (!this.#canEvaluate()) {
       return;
@@ -104,7 +130,13 @@ export class CombatTriggerDispatcher {
     }
   }
 
-  /** @param {string} triggerId @param {object} event */
+  /**
+   * Evaluates one registered trigger and delivers every returned prompt context.
+   *
+   * @param {string} triggerId
+   * @param {object} event
+   * @returns {Promise<void>}
+   */
   async #dispatch(triggerId, event) {
     const trigger = getTrigger(triggerId);
     if (!trigger) {
@@ -115,16 +147,29 @@ export class CombatTriggerDispatcher {
     }
   }
 
-  /** @param {object} event */
+  /**
+   * Evaluates all registered definitions against a resolved attack result.
+   *
+   * Definitions that do not handle attack results return no prompt contexts.
+   *
+   * @param {object} event
+   * @returns {Promise<void>}
+   */
   async #dispatchAttackResult(event) {
     for (const trigger of TRIGGERS) {
       await this.#dispatch(trigger.id, event);
     }
   }
 
-  /** @param {object} trigger @param {{actor: Actor, detail: string}} context */
+  /**
+   * Resolves eligible powers and active recipients, then creates a prompt.
+   *
+   * @param {object} trigger
+   * @param {{actor: Actor, detail: string}} context
+   * @returns {Promise<void>}
+   */
   async #deliver(trigger, context) {
-    const assignments = ActorTriggerConfiguration.assignmentsFor(context.actor, trigger, context);
+    const assignments = ActorTriggerConfiguration.eligibleAssignmentsFor(context.actor, trigger, context);
     if (!assignments.length) {
       return;
     }
@@ -132,18 +177,41 @@ export class CombatTriggerDispatcher {
     await this.promptChat.create({ trigger, actor: context.actor, assignments, context, recipientIds });
   }
 
+  /** @returns {boolean} Whether this client is the active combat's primary GM. */
   #canEvaluate() { return game.user.isGM && game.combat?.started && game.users.filter(user => user.active && user.isGM).sort((left, right) => left.id.localeCompare(right.id))[0]?.id === game.user.id; }
+
+  /** @returns {Combatant|undefined} Combatant occupying the supplied scene token. */
   #combatant(sceneId, tokenId) { return game.combat?.combatants.find(combatant => combatant.sceneId === sceneId && combatant.tokenId === tokenId); }
+
+  /** @returns {TokenDocument|undefined} Token document in the supplied scene. */
   #token(sceneId, tokenId) { return game.scenes.get(sceneId)?.tokens.get(tokenId); }
+
+  /**
+   * Builds the narrow Foundry adapter exposed to pure trigger definitions.
+   *
+   * @returns {object}
+   */
   #triggerServices() { return { combatants: game.combat.combatants, getToken: (sceneId, tokenId) => this.#token(sceneId, tokenId), markOwner: target => this.#markOwner(target), areHostile: (left, right) => left.disposition !== right.disposition, areAllies: (left, right) => left.disposition === right.disposition, distanceSquares: (left, right) => this.#distanceSquares(left, right), movesAdjacent: (mover, destination, candidate) => this.#movesAdjacent(mover, destination, candidate) }; }
 
-  /** @param {TokenDocument} target @returns {TokenDocument|null} */
+  /**
+   * Resolves a marked token's owner when that owner is currently in combat.
+   *
+   * @param {TokenDocument} target
+   * @returns {TokenDocument|null}
+   */
   #markOwner(target) {
     const owner = MarkOwnershipStore.ownerForTarget(target);
     return owner && this.#combatant(owner.parent.id, owner.id) ? owner : null;
   }
 
-  /** @param {object} context @param {object} target */
+  /**
+   * Derives hit or miss from DnD4e data, honoring recorded misses and natural
+   * 1/20 overrides before comparing the attack total with the defense.
+   *
+   * @param {object} context
+   * @param {object} target
+   * @returns {"hit"|"miss"|null}
+   */
   #outcome(context, target) {
     if (target.missed || context.natural === 1) {
       return "miss";
@@ -157,7 +225,13 @@ export class CombatTriggerDispatcher {
     return context.total < target.defense ? "miss" : "hit";
   }
 
-  /** @param {TokenDocument} left @param {TokenDocument} right */
+  /**
+   * Measures Chebyshev distance between token centers in grid squares.
+   *
+   * @param {TokenDocument} left
+   * @param {TokenDocument} right
+   * @returns {number}
+   */
   #distanceSquares(left, right) {
     const gridSize = canvas.grid.size;
     const leftCenter = { x: left.x + left.width * gridSize / 2, y: left.y + left.height * gridSize / 2 };
@@ -165,7 +239,17 @@ export class CombatTriggerDispatcher {
     return Math.max(Math.abs(leftCenter.x - rightCenter.x), Math.abs(leftCenter.y - rightCenter.y)) / gridSize;
   }
 
-  /** @param {TokenDocument} mover @param {{x: number, y: number}} destination @param {TokenDocument} candidate */
+  /**
+   * Checks whether movement starts or passes adjacent to a candidate token.
+   *
+   * The final destination point is excluded so ending adjacent without moving
+   * while adjacent does not qualify as an opportunity-attack event.
+   *
+   * @param {TokenDocument} mover
+   * @param {{x: number, y: number}} destination
+   * @param {TokenDocument} candidate
+   * @returns {boolean}
+   */
   #movesAdjacent(mover, destination, candidate) {
     const gridSize = canvas.grid.size;
     const distance = Math.max(Math.abs(destination.x - mover.x), Math.abs(destination.y - mover.y));
