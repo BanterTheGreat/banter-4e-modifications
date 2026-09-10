@@ -19,7 +19,7 @@ export class TriggerPrompts {
    */
   constructor(socket) {
     this.socket = socket;
-    this.lastAttack = null;
+    this.pendingAttackContext = null;
     this.promptChat = new TriggerPromptChat(socket);
     this.dispatcher = new CombatTriggerDispatcher(this.promptChat);
   }
@@ -32,11 +32,11 @@ export class TriggerPrompts {
    * @param {object} target
    * @param {object} speaker
    */
-  static onRollAttack(item, target, speaker) {
+  static onDnd4eRollAttack(item, target, speaker) {
     if (!game.TriggerPrompts) {
       return;
     }
-    game.TriggerPrompts.lastAttack = {
+    game.TriggerPrompts.pendingAttackContext = {
       itemName: item.name,
       attackerActorId: speaker.actor,
       attackerTokenId: speaker.token ?? null,
@@ -57,14 +57,14 @@ export class TriggerPrompts {
    * @param {ChatMessage} message
    * @param {object} socket
    */
-  static onPowerChatMessage(message, socket) {
-    const attack = game.TriggerPrompts?.lastAttack;
+  static onPreCreateAttackMessage(message, socket) {
+    const attack = game.TriggerPrompts?.pendingAttackContext;
     if (!attack || !message.flavor?.includes(attack.itemName) || !message.rolls?.[0]) {
       return;
     }
-    game.TriggerPrompts.lastAttack = null;
+    game.TriggerPrompts.pendingAttackContext = null;
     const roll = message.rolls[0];
-    socket.executeAsGM(TRIGGER_SOCKET_ACTION.EVALUATE_ATTACK, { ...attack, total: roll.total, natural: TriggerPrompts.#naturalD20(roll) })
+    socket.executeAsGM(TRIGGER_SOCKET_ACTION.EVALUATE_ATTACK, { ...attack, total: roll.total, natural: TriggerPrompts.#getNaturalD20Result(roll) })
       .catch(error => Logger.error("Failed to evaluate trigger attack", { error: error.message }));
   }
 
@@ -74,8 +74,8 @@ export class TriggerPrompts {
    * @param {object} context
    * @returns {Promise<void>}
    */
-  static async evaluateAttackFromSocket(context) {
-    await game.TriggerPrompts?.dispatcher.evaluateAttack(context);
+  static async evaluateCapturedAttackFromSocket(attackContext) {
+    await game.TriggerPrompts?.dispatcher.evaluateCapturedAttack(attackContext);
   }
 
   /**
@@ -85,11 +85,11 @@ export class TriggerPrompts {
    * @param {object} changes
    * @returns {Promise<void>}
    */
-  static async onPreUpdateToken(document, changes) {
+  static async onPreUpdateTokenPosition(document, changes) {
     if (!game.user.isGM || !game.TriggerPrompts || (changes.x === undefined && changes.y === undefined)) {
       return;
     }
-    await game.TriggerPrompts.dispatcher.evaluateMovement(document, changes);
+    await game.TriggerPrompts.dispatcher.evaluateTokenMovement(document, changes);
   }
 
   /**
@@ -101,8 +101,8 @@ export class TriggerPrompts {
    * @param {object} options
    * @returns {Promise<void>}
    */
-  static async onUpdateActor(actor, changes, options) {
-    await game.TriggerPrompts?.dispatcher.evaluateBloodied(actor, changes, options);
+  static async onUpdateActorHealth(actor, changes, options) {
+    await game.TriggerPrompts?.dispatcher.evaluateBloodiedTransition(actor, changes, options);
   }
 
   /**
@@ -149,8 +149,8 @@ export class TriggerPrompts {
    * @param {ChatMessage} message
    * @param {JQuery} html
    */
-  static onRenderChatMessage(message, html) {
-    game.TriggerPrompts?.promptChat.bind(message, html);
+  static onRenderPromptMessage(message, html) {
+    game.TriggerPrompts?.promptChat.bindPromptCard(message, html);
   }
 
   /**
@@ -159,8 +159,8 @@ export class TriggerPrompts {
    * @param {object} context
    * @returns {Promise<void>}
    */
-  async onActiveDefenseMiss(context) {
-    await this.dispatcher.evaluateActiveDefenseMiss(context);
+  async handleActiveDefenseMiss(attackContext) {
+    await this.dispatcher.evaluateActiveDefenseMiss(attackContext);
   }
 
   /**
@@ -169,7 +169,7 @@ export class TriggerPrompts {
    * @param {Roll} roll
    * @returns {number|null}
    */
-  static #naturalD20(roll) {
+  static #getNaturalD20Result(roll) {
     const die = roll.dice?.find(candidate => candidate.faces === 20);
     return die?.results?.find(result => result.active !== false)?.result ?? null;
   }

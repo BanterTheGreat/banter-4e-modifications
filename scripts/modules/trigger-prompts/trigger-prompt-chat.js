@@ -26,13 +26,13 @@ export class TriggerPromptChat {
    *   Resolved prompt data prepared by the combat dispatcher.
    * @returns {Promise<void>}
    */
-  async create({ trigger, actor, assignments, context, recipientIds }) {
+  async createPromptCard({ trigger, actor, assignments, context: promptContext, recipientIds }) {
     const choices = assignments.map(assignment => `<button data-trigger-prompt-action="${TRIGGER_PROMPT_ACTION.USE}" data-item-id="${assignment.item.id}">${foundry.utils.escapeHTML(assignment.item.name)}</button>`).join("");
     const expiresAt = Date.now() + TRIGGER_PROMPT_TIMEOUT_MS;
     const message = await ChatMessage.create({
       whisper: recipientIds,
       flavor: `<b>${foundry.utils.escapeHTML(trigger.label)}</b>`,
-      content: `<p>${foundry.utils.escapeHTML(context.detail)}</p><div class="${TRIGGER_PROMPT_UI.PROMPT_ACTIONS_CLASS}">${choices}<button data-trigger-prompt-action="${TRIGGER_PROMPT_ACTION.DISMISS}">${TRIGGER_PROMPT_UI.DISMISS_LABEL} (10)</button></div>`,
+      content: `<p>${foundry.utils.escapeHTML(promptContext.detail)}</p><div class="${TRIGGER_PROMPT_UI.PROMPT_ACTIONS_CLASS}">${choices}<button data-trigger-prompt-action="${TRIGGER_PROMPT_ACTION.DISMISS}">${TRIGGER_PROMPT_UI.DISMISS_LABEL} (10)</button></div>`,
       flags: { [TRIGGER_PROMPT_FLAG]: { triggerId: trigger.id, actorId: actor.id, choices: assignments.map(assignment => ({ assignmentId: assignment.id, itemId: assignment.item.id })), recipientIds, used: false, expiresAt } },
     });
     setTimeout(() => this.socket.executeAsGM(TRIGGER_SOCKET_ACTION.EXPIRE_PROMPT, message.id)
@@ -45,7 +45,7 @@ export class TriggerPromptChat {
    * @param {ChatMessage} message
    * @param {JQuery} html
    */
-  bind(message, html) {
+  bindPromptCard(message, html) {
     const prompt = message.flags?.[TRIGGER_PROMPT_FLAG];
     if (!prompt?.recipientIds?.includes(game.user.id)) {
       return;
@@ -54,10 +54,10 @@ export class TriggerPromptChat {
       html.find("[data-trigger-prompt-action]").remove();
       return;
     }
-    this.#bindExpiryCountdown(html, prompt.expiresAt);
+    this.#startExpiryCountdown(html, prompt.expiresAt);
     html.find(`[data-trigger-prompt-action='${TRIGGER_PROMPT_ACTION.USE}']`).on("click", async event => {
       event.preventDefault();
-      await this.#use(message, event.currentTarget.dataset.itemId ?? prompt.itemId);
+      await this.#claimAndUsePower(message, event.currentTarget.dataset.itemId ?? prompt.itemId);
     });
     html.find(`[data-trigger-prompt-action='${TRIGGER_PROMPT_ACTION.DISMISS}']`).on("click", async event => {
       event.preventDefault();
@@ -73,7 +73,7 @@ export class TriggerPromptChat {
    *   ID of one power offered by the message.
    * @returns {Promise<void>}
    */
-  async #use(message, itemId) {
+  async #claimAndUsePower(message, itemId) {
     const prompt = await this.socket.executeAsGM(TRIGGER_SOCKET_ACTION.CLAIM_PROMPT, message.id, itemId);
     if (!prompt) {
       return;
@@ -101,7 +101,7 @@ export class TriggerPromptChat {
    * @param {number} expiresAt
    *   Epoch timestamp at which the prompt expires.
    */
-  #bindExpiryCountdown(html, expiresAt) {
+  #startExpiryCountdown(html, expiresAt) {
     if (!Number.isFinite(expiresAt)) {
       return;
     }

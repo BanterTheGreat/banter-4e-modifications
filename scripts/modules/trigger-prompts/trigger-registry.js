@@ -30,6 +30,6 @@ export const TRIGGERS = [
  * @returns {import("./triggers/combat-trigger.js").CombatTrigger|undefined}
  *   The registered definition, when the ID is supported.
  */
-export function getTrigger(id) {
+export function findTriggerById(id) {
   return TRIGGERS.find(trigger => trigger.id === id);
 }

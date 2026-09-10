@@ -99,7 +99,7 @@ export class SocketHelper {
             Logger.info("Resolved defense target", { messageId, targetId, outcome });
 
             if (outcome === "miss") {
-                await game.TriggerPrompts?.onActiveDefenseMiss({
+                await game.TriggerPrompts?.handleActiveDefenseMiss({
                     attackerActorId: defense.attackerId,
                     attackerTokenId: defense.attackerTokenId,
                     sceneId: defense.sceneId,

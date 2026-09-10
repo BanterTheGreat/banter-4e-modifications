@@ -28,7 +28,7 @@ export class ActorTriggerConfiguration {
    * @returns {Array<object>}
    *   Eligible assignments with their resolved power in the `item` property.
    */
-  static eligibleAssignmentsFor(actor, trigger, context = {}) {
+  static eligibleAssignmentsFor(actor, trigger, triggerEvent = {}) {
     if (trigger.id === TRIGGER_ID.OPPORTUNITY_ATTACK) {
       if (!ActorTriggerConfiguration.isOpportunityAttackPromptEnabled(actor)) {
         return [];
@@ -38,7 +38,7 @@ export class ActorTriggerConfiguration {
     }
     return ActorTriggerConfiguration.configuredAssignments(actor)
       .filter(assignment => assignment.triggerId === trigger.id)
-      .filter(assignment => ActorTriggerConfiguration.#matchesParameters(assignment, trigger, context));
+      .filter(assignment => ActorTriggerConfiguration.#isAssignmentEligibleForEvent(assignment, trigger, triggerEvent));
   }
 
   /**
@@ -50,7 +50,7 @@ export class ActorTriggerConfiguration {
    *   Persisted assignment data enriched with its current `item` document.
    */
   static configuredAssignments(actor) {
-    return ActorTriggerConfiguration.#normalized(actor).assignments
+    return ActorTriggerConfiguration.#readConfiguration(actor).assignments
       .map(assignment => ({ ...assignment, item: actor.items.get(assignment.itemId) }))
       .filter(assignment => assignment.item?.type === "power");
   }
@@ -64,7 +64,7 @@ export class ActorTriggerConfiguration {
    *   Whether eligible opportunity-attack powers may be prompted.
    */
   static isOpportunityAttackPromptEnabled(actor) {
-    return ActorTriggerConfiguration.#normalized(actor).opportunityAttack.enabled;
+    return ActorTriggerConfiguration.#readConfiguration(actor).opportunityAttack.enabled;
   }
 
   /**
@@ -84,7 +84,7 @@ export class ActorTriggerConfiguration {
       ? `<ul>${opportunityPowers.map(item => `<li>${foundry.utils.escapeHTML(item.name)}</li>`).join("")}</ul>`
       : `<p class="hint">No powers are marked as opportunity attacks.</p>`;
     const summary = TRIGGERS.filter(trigger => trigger.id !== TRIGGER_ID.OPPORTUNITY_ATTACK)
-      .map(trigger => ActorTriggerConfiguration.#summary(actor, trigger)).filter(Boolean).join("");
+      .map(trigger => ActorTriggerConfiguration.#renderTriggerSummary(actor, trigger)).filter(Boolean).join("");
     const content = `<form class="${TRIGGER_PROMPT_UI.CONFIG_CLASS}">
       <section class="trigger-prompts-config__row">
         <div class="trigger-prompts-config__details"><strong>Opportunity Attacks</strong><p class="hint">Offer every power marked by DnD4e as an opportunity attack, plus Basic Attacks for NPCs.</p>${opportunitySummary}</div>
@@ -95,7 +95,7 @@ export class ActorTriggerConfiguration {
     </form>`;
     new Dialog({
       title: `${actor.name}: Trigger prompts`, content,
-      buttons: { save: { label: "Save", callback: html => ActorTriggerConfiguration.#saveActor(actor, html.find("form")[0]) } }, default: "save",
+      buttons: { save: { label: "Save", callback: html => ActorTriggerConfiguration.#saveActorOptions(actor, html.find("form")[0]) } }, default: "save",
     }, { width: 640 }).render(true);
   }
 
@@ -113,14 +113,14 @@ export class ActorTriggerConfiguration {
     const assignments = new Map(ActorTriggerConfiguration.configuredAssignments(actor)
       .filter(assignment => assignment.itemId === item.id).map(assignment => [assignment.triggerId, assignment]));
     const rows = TRIGGERS.filter(trigger => trigger.id !== TRIGGER_ID.OPPORTUNITY_ATTACK)
-      .map(trigger => ActorTriggerConfiguration.#itemRow(trigger, assignments.get(trigger.id))).join("");
+      .map(trigger => ActorTriggerConfiguration.#renderAssignmentRow(trigger, assignments.get(trigger.id))).join("");
     const triggerText = ActorTriggerConfiguration.getPowerTriggerText(item);
     const reference = triggerText
       ? `<p class="trigger-prompts-config__reference"><strong>Power trigger:</strong> ${foundry.utils.escapeHTML(triggerText)}</p>`
       : `<p class="hint">This power has no trigger line in its DnD4e data.</p>`;
     new Dialog({
       title: `${item.name}: Trigger prompts`, content: `<form class="${TRIGGER_PROMPT_UI.CONFIG_CLASS}">${reference}${rows}</form>`,
-      buttons: { save: { label: "Save", callback: html => ActorTriggerConfiguration.#saveItem(item, html.find("form")[0]) } }, default: "save",
+      buttons: { save: { label: "Save", callback: html => ActorTriggerConfiguration.#replacePowerAssignments(item, html.find("form")[0]) } }, default: "save",
     }, { width: 640 }).render(true);
   }
 
@@ -149,7 +149,7 @@ export class ActorTriggerConfiguration {
     if (!actor || actor.documentName !== "Actor") {
       return;
     }
-    const configuration = ActorTriggerConfiguration.#normalized(actor);
+    const configuration = ActorTriggerConfiguration.#readConfiguration(actor);
     const assignments = configuration.assignments.filter(assignment => assignment.itemId !== item.id);
     if (assignments.length !== configuration.assignments.length) {
       await actor.setFlag(MODULE_NAME, TRIGGER_CONFIGURATION_FLAG, { ...configuration, assignments });
@@ -164,7 +164,7 @@ export class ActorTriggerConfiguration {
    * @returns {string}
    *   Summary markup, or an empty string when no powers are assigned.
    */
-  static #summary(actor, trigger) {
+  static #renderTriggerSummary(actor, trigger) {
     const assignments = ActorTriggerConfiguration.configuredAssignments(actor).filter(assignment => assignment.triggerId === trigger.id);
     if (!assignments.length) {
       return "";
@@ -185,7 +185,7 @@ export class ActorTriggerConfiguration {
    * @param {object} [assignment]
    * @returns {string}
    */
-  static #itemRow(trigger, assignment) {
+  static #renderAssignmentRow(trigger, assignment) {
     const checked = assignment ? "checked" : "";
     const range = trigger.defaultRangeSquares === undefined ? "" : `<label class="trigger-prompts-config__range">Range <input type="number" name="${trigger.id}.rangeSquares" min="0" step="1" value="${assignment?.parameters?.rangeSquares ?? trigger.defaultRangeSquares}"> squares</label>`;
     return `<section class="trigger-prompts-config__row">
@@ -201,8 +201,8 @@ export class ActorTriggerConfiguration {
    * @param {HTMLFormElement} form
    * @returns {Promise<void>}
    */
-  static async #saveActor(actor, form) {
-    const configuration = ActorTriggerConfiguration.#normalized(actor);
+  static async #saveActorOptions(actor, form) {
+    const configuration = ActorTriggerConfiguration.#readConfiguration(actor);
     await actor.setFlag(MODULE_NAME, TRIGGER_CONFIGURATION_FLAG, { ...configuration, opportunityAttack: { enabled: new FormData(form).has("opportunityAttack.enabled") } });
   }
 
@@ -215,9 +215,9 @@ export class ActorTriggerConfiguration {
    * @param {HTMLFormElement} form
    * @returns {Promise<void>}
    */
-  static async #saveItem(item, form) {
+  static async #replacePowerAssignments(item, form) {
     const actor = item.parent;
-    const configuration = ActorTriggerConfiguration.#normalized(actor);
+    const configuration = ActorTriggerConfiguration.#readConfiguration(actor);
     const existing = new Map(configuration.assignments.filter(assignment => assignment.itemId === item.id).map(assignment => [assignment.triggerId, assignment]));
     const data = new FormData(form);
     const itemAssignments = TRIGGERS
@@ -244,12 +244,12 @@ export class ActorTriggerConfiguration {
    * @param {object} context
    * @returns {boolean}
    */
-  static #matchesParameters(assignment, trigger, context) {
-    if (trigger.defaultRangeSquares === undefined || !Number.isFinite(context.distanceSquares)) {
+  static #isAssignmentEligibleForEvent(assignment, trigger, triggerEvent) {
+    if (trigger.defaultRangeSquares === undefined || !Number.isFinite(triggerEvent.distanceSquares)) {
       return true;
     }
     const range = assignment.parameters?.rangeSquares;
-    return context.distanceSquares <= (Number.isFinite(range) && range >= 0 ? range : trigger.defaultRangeSquares);
+    return triggerEvent.distanceSquares <= (Number.isFinite(range) && range >= 0 ? range : trigger.defaultRangeSquares);
   }
 
   /**
@@ -280,7 +280,7 @@ export class ActorTriggerConfiguration {
    * @param {Actor} actor
    * @returns {{opportunityAttack: {enabled: boolean}, assignments: Array<object>}}
    */
-  static #normalized(actor) {
+  static #readConfiguration(actor) {
     const stored = actor.getFlag(MODULE_NAME, TRIGGER_CONFIGURATION_FLAG) ?? {};
     if (Array.isArray(stored.assignments)) {
       return { opportunityAttack: { enabled: stored.opportunityAttack?.enabled !== false }, assignments: stored.assignments };

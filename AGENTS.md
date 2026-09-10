@@ -26,3 +26,11 @@ Foundry VTT v13 module for DnD4e homebrew automation: simplified conditions and 
 - Changelog entries are release summaries, not per-change notes. Since the last version, list new features and changes to existing behavior in short, concise bullets that support future regression review.
 - Do not enable or alter the commented-out BEACON hooks without explicitly intending to ship that feature.
 - Track project TODOs as appropriately labeled GitHub Issues rather than local TODO files.
+
+## Naming and method style
+
+- Name methods for the domain operation or state transition they perform: `captureNpcAttack`, `createPendingDefense`, and `resolveDefenseAttempt` communicate more than incidental implementation steps. Reserve `on...` for Foundry hook handlers.
+- Use verbs that match the method's role: `find...` for lookups, `is...`/`has...`/`can...` for predicates, `create...` for new documents or workflow state, and `resolve...` for committed outcomes. Keep private implementation helpers private with `#`.
+- Split an event workflow at meaningful transitions—capture, evaluate, create, claim, resolve, and finalize—so each method has one orchestration responsibility. Keep calculations, rendering, and compatibility reads in focused helpers when they represent a named concept.
+- Avoid shallow pass-through helpers. A method earns its name when it hides a decision, a Foundry-system quirk, a state transition, or repeated implementation detail from its caller.
+- When data crosses a hook, socket, or persisted flag seam, document its shape and authority in JSDoc. Prefer names such as `attackContext`, `defenseAttempt`, and `promptState` over generic `data` or `context` when the role is known.

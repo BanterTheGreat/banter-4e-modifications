@@ -1,6 +1,6 @@
 import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "./constants.js";
 import { ActorTriggerConfiguration } from "./actor-trigger-configuration.js";
-import { getTrigger, TRIGGERS } from "./trigger-registry.js";
+import { findTriggerById, TRIGGERS } from "./trigger-registry.js";
 import { MarkOwnershipStore } from "../mark-ownership/mark-ownership-store.js";
 
 /**
@@ -25,24 +25,24 @@ export class CombatTriggerDispatcher {
    *   Captured attacker, target, defense, total, and natural-d20 data.
    * @returns {Promise<void>}
    */
-  async evaluateAttack(context) {
+  async evaluateCapturedAttack(attackContext) {
     if (!this.#canEvaluate()) {
       return;
     }
-    const attacker = this.#combatant(context.sceneId, context.attackerTokenId);
+    const attacker = this.#findCombatantByToken(attackContext.sceneId, attackContext.attackerTokenId);
     if (!attacker) {
       return;
     }
-    for (const targetData of context.targets ?? []) {
-      const target = this.#combatant(targetData.sceneId, targetData.tokenId);
+    for (const targetData of attackContext.targets ?? []) {
+      const target = this.#findCombatantByToken(targetData.sceneId, targetData.tokenId);
       if (!target) {
         continue;
       }
-      const outcome = this.#outcome(context, targetData);
+      const outcome = this.#determineAttackOutcome(attackContext, targetData);
       if (!outcome) {
         continue;
       }
-      await this.#dispatchAttackResult({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome, attacker, target });
+      await this.#evaluateAttackResultTriggers({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome, attacker, target });
     }
   }
 
@@ -54,15 +54,15 @@ export class CombatTriggerDispatcher {
    * @param {object} changes
    * @returns {Promise<void>}
    */
-  async evaluateMovement(document, changes) {
+  async evaluateTokenMovement(document, changes) {
     if (!this.#canEvaluate()) {
       return;
     }
-    const combatant = this.#combatant(document.parent.id, document.id);
+    const combatant = this.#findCombatantByToken(document.parent.id, document.id);
     if (!combatant) {
       return;
     }
-    await this.#dispatch(TRIGGER_ID.OPPORTUNITY_ATTACK, {
+    await this.#evaluateTrigger(TRIGGER_ID.OPPORTUNITY_ATTACK, {
       type: TRIGGER_EVENT_TYPE.MOVEMENT,
       combatant,
       sceneId: document.parent.id,
@@ -72,7 +72,7 @@ export class CombatTriggerDispatcher {
         y: changes.y ?? document.y,
       },
     });
-    await this.#dispatch(TRIGGER_ID.MARKED_CREATURE_SHIFTS_ADJACENT, {
+    await this.#evaluateTrigger(TRIGGER_ID.MARKED_CREATURE_SHIFTS_ADJACENT, {
       type: TRIGGER_EVENT_TYPE.MOVEMENT,
       combatant,
       sceneId: document.parent.id,
@@ -91,7 +91,7 @@ export class CombatTriggerDispatcher {
    * @param {object} changes
    * @param {object} options
    */
-  async evaluateBloodied(actor, changes, options) {
+  async evaluateBloodiedTransition(actor, changes, options) {
     if (!this.#canEvaluate()) {
       return;
     }
@@ -103,7 +103,7 @@ export class CombatTriggerDispatcher {
     }
     for (const combatant of game.combat.combatants) {
       if (combatant.actor?.uuid === actor.uuid) {
-        await this.#dispatch(TRIGGER_ID.MARKED_CREATURE_BLOODIED, {
+        await this.#evaluateTrigger(TRIGGER_ID.MARKED_CREATURE_BLOODIED, {
           type: TRIGGER_EVENT_TYPE.BLOODIED,
           combatant,
           sceneId: combatant.sceneId,
@@ -119,14 +119,14 @@ export class CombatTriggerDispatcher {
    * @param {object} context
    * @returns {Promise<void>}
    */
-  async evaluateActiveDefenseMiss(context) {
+  async evaluateActiveDefenseMiss(activeDefenseContext) {
     if (!this.#canEvaluate()) {
       return;
     }
-    const attacker = this.#combatant(context.sceneId, context.attackerTokenId);
-    const target = this.#combatant(context.targetSceneId, context.targetTokenId);
+    const attacker = this.#findCombatantByToken(activeDefenseContext.sceneId, activeDefenseContext.attackerTokenId);
+    const target = this.#findCombatantByToken(activeDefenseContext.targetSceneId, activeDefenseContext.targetTokenId);
     if (attacker && target) {
-      await this.#dispatchAttackResult({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome: "miss", attacker, target });
+      await this.#evaluateAttackResultTriggers({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome: "miss", attacker, target });
     }
   }
 
@@ -137,13 +137,13 @@ export class CombatTriggerDispatcher {
    * @param {object} event
    * @returns {Promise<void>}
    */
-  async #dispatch(triggerId, event) {
-    const trigger = getTrigger(triggerId);
+  async #evaluateTrigger(triggerId, event) {
+    const trigger = findTriggerById(triggerId);
     if (!trigger) {
       return;
     }
-    for (const context of trigger.evaluate(event, this.#triggerServices())) {
-      await this.#deliver(trigger, context);
+    for (const promptContext of trigger.evaluate(event, this.#createTriggerServices())) {
+      await this.#createPromptForContext(trigger, promptContext);
     }
   }
 
@@ -155,9 +155,9 @@ export class CombatTriggerDispatcher {
    * @param {object} event
    * @returns {Promise<void>}
    */
-  async #dispatchAttackResult(event) {
+  async #evaluateAttackResultTriggers(event) {
     for (const trigger of TRIGGERS) {
-      await this.#dispatch(trigger.id, event);
+      await this.#evaluateTrigger(trigger.id, event);
     }
   }
 
@@ -168,30 +168,30 @@ export class CombatTriggerDispatcher {
    * @param {{actor: Actor, detail: string}} context
    * @returns {Promise<void>}
    */
-  async #deliver(trigger, context) {
-    const assignments = ActorTriggerConfiguration.eligibleAssignmentsFor(context.actor, trigger, context);
+  async #createPromptForContext(trigger, promptContext) {
+    const assignments = ActorTriggerConfiguration.eligibleAssignmentsFor(promptContext.actor, trigger, promptContext);
     if (!assignments.length) {
       return;
     }
-    const recipientIds = game.users.filter(user => user.active && (user.isGM || context.actor.testUserPermission(user, "OWNER"))).map(user => user.id);
-    await this.promptChat.create({ trigger, actor: context.actor, assignments, context, recipientIds });
+    const recipientIds = game.users.filter(user => user.active && (user.isGM || promptContext.actor.testUserPermission(user, "OWNER"))).map(user => user.id);
+    await this.promptChat.createPromptCard({ trigger, actor: promptContext.actor, assignments, context: promptContext, recipientIds });
   }
 
   /** @returns {boolean} Whether this client is the active combat's primary GM. */
   #canEvaluate() { return game.user.isGM && game.combat?.started && game.users.filter(user => user.active && user.isGM).sort((left, right) => left.id.localeCompare(right.id))[0]?.id === game.user.id; }
 
   /** @returns {Combatant|undefined} Combatant occupying the supplied scene token. */
-  #combatant(sceneId, tokenId) { return game.combat?.combatants.find(combatant => combatant.sceneId === sceneId && combatant.tokenId === tokenId); }
+  #findCombatantByToken(sceneId, tokenId) { return game.combat?.combatants.find(combatant => combatant.sceneId === sceneId && combatant.tokenId === tokenId); }
 
   /** @returns {TokenDocument|undefined} Token document in the supplied scene. */
-  #token(sceneId, tokenId) { return game.scenes.get(sceneId)?.tokens.get(tokenId); }
+  #findSceneToken(sceneId, tokenId) { return game.scenes.get(sceneId)?.tokens.get(tokenId); }
 
   /**
    * Builds the narrow Foundry adapter exposed to pure trigger definitions.
    *
    * @returns {object}
    */
-  #triggerServices() { return { combatants: game.combat.combatants, getToken: (sceneId, tokenId) => this.#token(sceneId, tokenId), markOwner: target => this.#markOwner(target), areHostile: (left, right) => left.disposition !== right.disposition, areAllies: (left, right) => left.disposition === right.disposition, distanceSquares: (left, right) => this.#distanceSquares(left, right), movesAdjacent: (mover, destination, candidate) => this.#movesAdjacent(mover, destination, candidate) }; }
+  #createTriggerServices() { return { combatants: game.combat.combatants, getToken: (sceneId, tokenId) => this.#findSceneToken(sceneId, tokenId), markOwner: target => this.#findMarkOwner(target), areHostile: (left, right) => left.disposition !== right.disposition, areAllies: (left, right) => left.disposition === right.disposition, distanceSquares: (left, right) => this.#calculateDistanceSquares(left, right), movesAdjacent: (mover, destination, candidate) => this.#doesMovementPassAdjacentTo(mover, destination, candidate) }; }
 
   /**
    * Resolves a marked token's owner when that owner is currently in combat.
@@ -199,9 +199,9 @@ export class CombatTriggerDispatcher {
    * @param {TokenDocument} target
    * @returns {TokenDocument|null}
    */
-  #markOwner(target) {
+  #findMarkOwner(target) {
     const owner = MarkOwnershipStore.ownerForTarget(target);
-    return owner && this.#combatant(owner.parent.id, owner.id) ? owner : null;
+    return owner && this.#findCombatantByToken(owner.parent.id, owner.id) ? owner : null;
   }
 
   /**
@@ -212,17 +212,17 @@ export class CombatTriggerDispatcher {
    * @param {object} target
    * @returns {"hit"|"miss"|null}
    */
-  #outcome(context, target) {
-    if (target.missed || context.natural === 1) {
+  #determineAttackOutcome(attackContext, target) {
+    if (target.missed || attackContext.natural === 1) {
       return "miss";
     }
-    if (context.natural === 20) {
+    if (attackContext.natural === 20) {
       return "hit";
     }
-    if (target.defense === null || context.total === undefined) {
+    if (target.defense === null || attackContext.total === undefined) {
       return null;
     }
-    return context.total < target.defense ? "miss" : "hit";
+    return attackContext.total < target.defense ? "miss" : "hit";
   }
 
   /**
@@ -232,7 +232,7 @@ export class CombatTriggerDispatcher {
    * @param {TokenDocument} right
    * @returns {number}
    */
-  #distanceSquares(left, right) {
+  #calculateDistanceSquares(left, right) {
     const gridSize = canvas.grid.size;
     const leftCenter = { x: left.x + left.width * gridSize / 2, y: left.y + left.height * gridSize / 2 };
     const rightCenter = { x: right.x + right.width * gridSize / 2, y: right.y + right.height * gridSize / 2 };
@@ -250,7 +250,7 @@ export class CombatTriggerDispatcher {
    * @param {TokenDocument} candidate
    * @returns {boolean}
    */
-  #movesAdjacent(mover, destination, candidate) {
+  #doesMovementPassAdjacentTo(mover, destination, candidate) {
     const gridSize = canvas.grid.size;
     const distance = Math.max(Math.abs(destination.x - mover.x), Math.abs(destination.y - mover.y));
     const steps = Math.max(1, Math.ceil(distance / gridSize));

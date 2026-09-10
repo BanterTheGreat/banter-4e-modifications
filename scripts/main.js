@@ -59,7 +59,7 @@ Hooks.once("socketlib.ready", () => {
   socket.register("updateMessage", SocketHelper.updateMessage);
   socket.register("attemptDefenseDialog", SocketHelper.attemptDefenseDialog);
   socket.register("resolveDefenseTarget", SocketHelper.resolveDefenseTarget);
-  socket.register(TRIGGER_SOCKET_ACTION.EVALUATE_ATTACK, TriggerPrompts.evaluateAttackFromSocket);
+  socket.register(TRIGGER_SOCKET_ACTION.EVALUATE_ATTACK, TriggerPrompts.evaluateCapturedAttackFromSocket);
   socket.register(TRIGGER_SOCKET_ACTION.CLAIM_PROMPT, SocketHelper.claimTriggerPrompt);
   socket.register(TRIGGER_SOCKET_ACTION.EXPIRE_PROMPT, SocketHelper.expireTriggerPrompt);
   socket.register("setMarkOwner", MarkOwnershipStore.assign);
@@ -119,15 +119,15 @@ Hooks.on("i18nInit", () => {
 
 Hooks.on("i18nInit", () => {
   if (game.settings.get(MODULE_NAME, ENABLE_TRIGGER_PROMPTS)) {
-    Hooks.on("dnd4e.rollAttack", TriggerPrompts.onRollAttack);
-    Hooks.on("preCreateChatMessage", message => TriggerPrompts.onPowerChatMessage(message, socket));
-    Hooks.on("preUpdateToken", TriggerPrompts.onPreUpdateToken);
-    Hooks.on("updateActor", TriggerPrompts.onUpdateActor);
+    Hooks.on("dnd4e.rollAttack", TriggerPrompts.onDnd4eRollAttack);
+    Hooks.on("preCreateChatMessage", message => TriggerPrompts.onPreCreateAttackMessage(message, socket));
+    Hooks.on("preUpdateToken", TriggerPrompts.onPreUpdateTokenPosition);
+    Hooks.on("updateActor", TriggerPrompts.onUpdateActorHealth);
     Hooks.on("getActorSheetHeaderButtons", TriggerPrompts.onGetActorSheetHeaderButtons);
     Hooks.on("getItemSheetHeaderButtons", PowerTriggerConfiguration.onGetItemSheetHeaderButtons);
     Hooks.on("getHeaderControlsApplicationV2", TriggerPrompts.onGetHeaderControlsApplicationV2);
     Hooks.on("getHeaderControlsApplicationV2", PowerTriggerConfiguration.onGetHeaderControlsApplicationV2);
     Hooks.on("deleteItem", PowerTriggerConfiguration.onDeleteItem);
-    Hooks.on("renderChatMessage", (message, html) => TriggerPrompts.onRenderChatMessage(message, html));
+    Hooks.on("renderChatMessage", (message, html) => TriggerPrompts.onRenderPromptMessage(message, html));
   }
 });
