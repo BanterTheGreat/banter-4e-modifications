@@ -1,5 +1,5 @@
 import { MODULE_NAME } from "../../shared/globals.js";
-import { TRIGGER_CONFIGURATION_FLAG, TRIGGER_PROMPT_UI } from "./constants.js";
+import { ABILITY_SELECTION, TRIGGER_CONFIGURATION_FLAG, TRIGGER_PROMPT_UI } from "./constants.js";
 import { TRIGGERS } from "./trigger-registry.js";
 
 /** Owns actor flag access and the actor-sheet trigger configuration dialog. */
@@ -13,16 +13,19 @@ export class ActorTriggerConfiguration {
   /** @param {Actor} actor @param {object} trigger */
   static resolveAbility(actor, trigger) {
     const entry = ActorTriggerConfiguration.#entries(actor)[trigger.id];
-    if (entry?.itemId) {
+    const selection = entry?.abilitySelection ?? entry?.itemId ?? trigger.defaultAbilitySelection;
+    if (selection.startsWith(ABILITY_SELECTION.ITEM_PREFIX)) {
+      const item = actor.items.get(selection.slice(ABILITY_SELECTION.ITEM_PREFIX.length));
+      return item?.type === "power" ? item : undefined;
+    }
+
+    // Legacy configurations stored an unprefixed item ID.
+    if (entry?.itemId && !entry?.abilitySelection) {
       const item = actor.items.get(entry.itemId);
       return item?.type === "power" ? item : undefined;
     }
 
-    if (actor.type === "NPC") {
-      return actor.items.find(item => ActorTriggerConfiguration.#isBasicAttack(item));
-    }
-
-    return actor.items.find(item => item.name?.toLowerCase() === trigger.defaultAbilityName.toLowerCase());
+    return actor.items.find(item => ActorTriggerConfiguration.#matchesSelection(item, selection));
   }
 
   /** @param {Actor} actor @param {object} trigger */
@@ -36,7 +39,7 @@ export class ActorTriggerConfiguration {
     const config = ActorTriggerConfiguration.#entries(actor);
     const itemOptions = actor.items
       .filter(item => item.type === "power")
-      .map(item => `<option value="${item.id}">${foundry.utils.escapeHTML(item.name)}</option>`)
+      .map(item => `<option value="${ABILITY_SELECTION.ITEM_PREFIX}${item.id}">${foundry.utils.escapeHTML(item.name)}</option>`)
       .join("");
     const rows = TRIGGERS.map(trigger => ActorTriggerConfiguration.#row(actor, trigger, config[trigger.id], itemOptions)).join("");
 
@@ -60,7 +63,7 @@ export class ActorTriggerConfiguration {
     const toggle = trigger.configurable
       ? `<input class="trigger-prompts-config__enabled" type="checkbox" name="${trigger.id}.enabled" ${enabled} title="Enable ${trigger.label}" aria-label="Enable ${trigger.label}">`
       : "";
-    const options = `<option value="">Use default: ${ActorTriggerConfiguration.#defaultAbilityLabel(actor, trigger)}</option>${itemOptions}`;
+    const options = `<option value="${ABILITY_SELECTION.BASIC_ATTACKS}">Basic Attacks</option><option value="${ABILITY_SELECTION.OPPORTUNITY_ATTACKS}">Opportunity Attacks</option>${itemOptions}`;
     const range = trigger.defaultRangeSquares === undefined
       ? ""
       : `<label class="trigger-prompts-config__range">Range <input type="number" name="${trigger.id}.rangeSquares" min="0" step="1" value="${ActorTriggerConfiguration.rangeSquares(actor, trigger)}"> squares</label>`;
@@ -71,20 +74,24 @@ export class ActorTriggerConfiguration {
       </div>
       <div class="trigger-prompts-config__controls">
         ${toggle}
-        <select name="${trigger.id}.itemId">${options}</select>
+        <select name="${trigger.id}.abilitySelection">${options}</select>
         ${range}
       </div>
     </section>`;
   }
 
-  /** @param {Actor} actor @param {object} trigger */
-  static #defaultAbilityLabel(actor, trigger) {
-    return actor.type === "NPC" ? "First Basic Attack" : trigger.defaultAbilityName;
-  }
-
-  /** @param {Item} item */
-  static #isBasicAttack(item) {
-    return item.type === "power" && item.system?.subName === "Basic Attack";
+  /** @param {Item} item @param {string} selection */
+  static #matchesSelection(item, selection) {
+    if (item.type !== "power") {
+      return false;
+    }
+    if (selection === ABILITY_SELECTION.BASIC_ATTACKS) {
+      return Boolean(item.system?.attack?.isBasic);
+    }
+    if (selection === ABILITY_SELECTION.OPPORTUNITY_ATTACKS) {
+      return Boolean(item.system?.attack?.isOpp);
+    }
+    return false;
   }
 
   /** @param {Actor} actor @param {HTMLFormElement} form */
@@ -95,7 +102,7 @@ export class ActorTriggerConfiguration {
       const rangeSquares = data.get(`${trigger.id}.rangeSquares`);
       config[trigger.id] = {
         enabled: trigger.configurable ? data.has(`${trigger.id}.enabled`) : true,
-        itemId: data.get(`${trigger.id}.itemId`) || null,
+        abilitySelection: data.get(`${trigger.id}.abilitySelection`) || trigger.defaultAbilitySelection,
         ...(trigger.defaultRangeSquares === undefined ? {} : { rangeSquares: rangeSquares === "" ? trigger.defaultRangeSquares : Number(rangeSquares) }),
       };
     });
@@ -105,10 +112,10 @@ export class ActorTriggerConfiguration {
   /** @param {JQuery} html @param {object} config */
   static #selectConfiguredItems(html, config) {
     TRIGGERS.forEach(trigger => {
-      const itemId = config[trigger.id]?.itemId;
-      if (itemId) {
-        html.find(`[name='${trigger.id}.itemId']`).val(itemId);
-      }
+      const entry = config[trigger.id];
+      const selection = entry?.abilitySelection
+        ?? (entry?.itemId ? `${ABILITY_SELECTION.ITEM_PREFIX}${entry.itemId}` : trigger.defaultAbilitySelection);
+      html.find(`[name='${trigger.id}.abilitySelection']`).val(selection);
     });
   }
 }

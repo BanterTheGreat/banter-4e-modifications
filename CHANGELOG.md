@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.2 — Trigger Ability Categories
+
+Replaced trigger prompts' name-based default ability lookup with `Basic Attacks` and `Opportunity Attacks` selector options backed by the DnD4e system's existing attack metadata. Category selections use the first matching actor power, opportunity-attack prompts default to opportunity attacks.
+
 ## 1.2.1 — Additional Mark Triggers
 
 Added trigger prompts for a creature marked by you becoming bloodied and for a creature marked by you moving or shifting while adjacent to you. Both triggers resolve the marking actor through the Mark ownership metadata and reuse the existing GM-authoritative trigger dispatch and actor-level ability configuration.

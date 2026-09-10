@@ -31,9 +31,11 @@ export const TRIGGER_SOCKET_ACTION = Object.freeze({
   CLAIM_PROMPT: "claimTriggerPrompt",
 });
 
-/** Code-defined default ability lookup values. */
-export const DEFAULT_ABILITY_NAME = Object.freeze({
-  MELEE_BASIC_ATTACK: "Basic Attack (Melee)",
+/** Virtual selections supported by trigger ability configuration. */
+export const ABILITY_SELECTION = Object.freeze({
+  BASIC_ATTACKS: "basic-attacks",
+  OPPORTUNITY_ATTACKS: "opportunity-attacks",
+  ITEM_PREFIX: "item:",
 });
 
 /** DOM class names and visible control labels owned by this submodule. */

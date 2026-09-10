@@ -1,5 +1,5 @@
 import { CombatTrigger } from "./combat-trigger.js";
-import { DEFAULT_ABILITY_NAME, TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
+import { ABILITY_SELECTION, TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
 
 /** Detects an enemy hitting the configured actor. */
 export class EnemyHitSelfTrigger extends CombatTrigger {
@@ -8,7 +8,7 @@ export class EnemyHitSelfTrigger extends CombatTrigger {
       id: TRIGGER_ID.ENEMY_HITS_YOU,
       label: "Enemy hits you",
       configurable: true,
-      defaultAbilityName: DEFAULT_ABILITY_NAME.MELEE_BASIC_ATTACK,
+      defaultAbilitySelection: ABILITY_SELECTION.BASIC_ATTACKS,
       description: "An enemy hits this actor.",
     });
   }

@@ -1,5 +1,5 @@
 import { CombatTrigger } from "./combat-trigger.js";
-import { DEFAULT_ABILITY_NAME, TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
+import { ABILITY_SELECTION, TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
 
 /**
  * Detects an enemy missing a combatant and finds nearby eligible allies.
@@ -10,7 +10,7 @@ export class EnemyMissTrigger extends CombatTrigger {
       id: TRIGGER_ID.ENEMY_MISSES_ALLY,
       label: "Enemy misses you or an ally",
       configurable: true,
-      defaultAbilityName: DEFAULT_ABILITY_NAME.MELEE_BASIC_ATTACK,
+      defaultAbilitySelection: ABILITY_SELECTION.BASIC_ATTACKS,
       defaultRangeSquares: 10,
       description: "An enemy misses this actor or an allied combatant within the configured range.",
     });
