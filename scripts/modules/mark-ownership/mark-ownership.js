@@ -2,6 +2,7 @@ import { isMark, MARKER_CHANGE_KEY } from "./constants.js";
 import { MarkOwnerDialog } from "./mark-owner-dialog.js";
 import { MarkOwnershipRenderer } from "./mark-ownership-renderer.js";
 import { MarkOwnershipStore } from "./mark-ownership-store.js";
+import { ENABLE_MARK_OWNERSHIP, MODULE_NAME } from "../../shared/globals.js";
 
 /**
  * Coordinates Foundry lifecycle hooks for Mark ownership.
@@ -36,7 +37,7 @@ export class MarkOwnership {
    *   ID of the user who initiated creation.
    */
   static onCreateActiveEffect(effect, options, userId) {
-    if (userId !== game.user.id || !isMark(effect)) {
+    if (!game.settings.get(MODULE_NAME, ENABLE_MARK_OWNERSHIP) || userId !== game.user.id || !isMark(effect)) {
       return;
     }
 
@@ -221,7 +222,8 @@ export class MarkOwnership {
    *   Captured combat context, or null when prompting must not occur.
    */
   static #getCombatContext(effect) {
-    if (!game.combat?.started || game.combat.scene?.id !== canvas.scene?.id) {
+    const combatSceneId = typeof game.combat?.scene === "string" ? game.combat.scene : game.combat?.scene?.id;
+    if (!game.combat?.started || (combatSceneId && combatSceneId !== canvas.scene?.id)) {
       return null;
     }
     const matchingTokens = canvas.tokens.placeables.filter(token => token.actor === effect.parent);

@@ -6,6 +6,8 @@ Moved configurable trigger assignments into actor-owned records edited from each
 
 NPC Basic Attacks are also offered as Opportunity Attacks because legacy DnD4e represents NPC opportunity attacks that way.
 
+Mark ownership now reliably opens its v13 DialogV2 picker in scene-linked combats, defaults to the current combatant, and renders unblurred, fully opaque red arrows from marker to marked at two arrows per grid square.
+
 ## 1.2.2 — Trigger Ability Categories
 
 Replaced trigger prompts' name-based default ability lookup with `Basic Attacks` and `Opportunity Attacks` selector options backed by the DnD4e system's existing attack metadata. Category selections use the first matching actor power, opportunity-attack prompts default to opportunity attacks.

@@ -87,21 +87,21 @@ Hooks.on("init", Dnd4eSystemCustomizations.replaceSkills);
 Hooks.on("i18nInit", () => {
   if (game.settings.get(MODULE_NAME, ENABLE_MARK_OWNERSHIP)) {
     Hooks.on("ready", () => game.MarkOwnership = new MarkOwnership(socket));
-    Hooks.on("createActiveEffect", MarkOwnership.onCreateActiveEffect);
-    Hooks.on("updateActiveEffect", MarkOwnership.onVisualStateChanged);
-    Hooks.on("deleteActiveEffect", MarkOwnership.onVisualStateChanged);
-    Hooks.on("deleteCombatant", MarkOwnership.onDeleteCombatant);
-    Hooks.on("deleteToken", MarkOwnership.onDeleteToken);
-    Hooks.on("combatEnd", MarkOwnership.onCombatEnd);
-    Hooks.on("deleteCombat", MarkOwnership.onDeleteCombat);
-    Hooks.on("canvasReady", MarkOwnership.onCanvasReady);
-    Hooks.on("canvasTearDown", MarkOwnership.onCanvasTearDown);
-    Hooks.on("hoverToken", MarkOwnership.onVisualStateChanged);
-    Hooks.on("controlToken", MarkOwnership.onVisualStateChanged);
-    Hooks.on("targetToken", MarkOwnership.onVisualStateChanged);
-    Hooks.on("refreshToken", MarkOwnership.onVisualStateChanged);
   }
 });
+Hooks.on("createActiveEffect", MarkOwnership.onCreateActiveEffect);
+Hooks.on("updateActiveEffect", MarkOwnership.onVisualStateChanged);
+Hooks.on("deleteActiveEffect", MarkOwnership.onVisualStateChanged);
+Hooks.on("deleteCombatant", MarkOwnership.onDeleteCombatant);
+Hooks.on("deleteToken", MarkOwnership.onDeleteToken);
+Hooks.on("combatEnd", MarkOwnership.onCombatEnd);
+Hooks.on("deleteCombat", MarkOwnership.onDeleteCombat);
+Hooks.on("canvasReady", MarkOwnership.onCanvasReady);
+Hooks.on("canvasTearDown", MarkOwnership.onCanvasTearDown);
+Hooks.on("hoverToken", MarkOwnership.onVisualStateChanged);
+Hooks.on("controlToken", MarkOwnership.onVisualStateChanged);
+Hooks.on("targetToken", MarkOwnership.onVisualStateChanged);
+Hooks.on("refreshToken", MarkOwnership.onVisualStateChanged);
 
 // Player Defense
 

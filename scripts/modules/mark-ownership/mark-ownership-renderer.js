@@ -16,7 +16,6 @@ export class MarkOwnershipRenderer {
 
   /**
    * Replaces any stale graphics layer with one attached to the active canvas.
-   * Applies the supported PIXI blur-filter form for Foundry v12 or v13.
    */
   initialize() {
     this.destroy();
@@ -24,11 +23,6 @@ export class MarkOwnershipRenderer {
       return;
     }
     this.lines = canvas.interface.addChild(new PIXI.Graphics());
-    const BlurFilter = PIXI.BlurFilter ?? PIXI.filters?.BlurFilter;
-    if (BlurFilter) {
-      const pixiMajorVersion = Number.parseInt(PIXI.VERSION, 10);
-      this.lines.filters = [pixiMajorVersion >= 8 ? new BlurFilter({ strength: 3, quality: 2 }) : new BlurFilter(3, 2)];
-    }
   }
 
   /**
@@ -64,7 +58,7 @@ export class MarkOwnershipRenderer {
       if (!MarkOwnershipRenderer.#isInteractive(owner) && !MarkOwnershipRenderer.#isInteractive(target)) {
         continue;
       }
-      this.#drawLine(owner.center, target.center);
+      this.#drawArrows(owner, target);
     }
   }
 
@@ -95,21 +89,84 @@ export class MarkOwnershipRenderer {
   }
 
   /**
-   * Adds one red ownership line to the shared graphics layer. PIXI v8 strokes
+   * Adds red arrowheads pointing from the marker toward the marked token. Two
+   * arrowheads are centered within every grid-square length. PIXI v8 strokes
    * completed paths, while the v7-compatible branch sets line style first.
    *
-   * @param {{x: number, y: number}} from
-   *   Canvas center of the owner token.
-   * @param {{x: number, y: number}} to
-   *   Canvas center of the marked token.
+   * @param {Token} owner
+   *   Token applying the Mark.
+   * @param {Token} target
+   *   Token carrying the Mark.
    */
-  #drawLine(from, to) {
-    if (this.lines.stroke) {
-      this.lines.moveTo(from.x, from.y).lineTo(to.x, to.y);
-      this.lines.stroke({ color: 0xff2222, width: 4, alpha: 0.75 });
-    } else {
-      this.lines.lineStyle(4, 0xff2222, 0.75);
-      this.lines.moveTo(from.x, from.y).lineTo(to.x, to.y);
+  #drawArrows(owner, target) {
+    const from = MarkOwnershipRenderer.#edgePoint(target.center, owner);
+    const to = MarkOwnershipRenderer.#edgePoint(owner.center, target);
+    const arrowLength = 18;
+    const arrowAngle = Math.PI / 6;
+    const deltaX = to.x - from.x;
+    const deltaY = to.y - from.y;
+    const distance = Math.hypot(deltaX, deltaY);
+    const direction = Math.atan2(deltaY, deltaX);
+    const gridSize = Number(canvas.grid.size);
+    const arrowSpacing = Number.isFinite(gridSize) && gridSize > 0 ? gridSize / 2 : distance;
+    const arrowPositions = [];
+    for (let travelled = arrowSpacing / 2; travelled < distance; travelled += arrowSpacing) {
+      arrowPositions.push(travelled / distance);
     }
+    if (!arrowPositions.length) {
+      arrowPositions.push(0.5);
+    }
+    const arrows = arrowPositions.map(position => {
+      const point = { x: from.x + (to.x - from.x) * position, y: from.y + (to.y - from.y) * position };
+      return {
+        point,
+        left: { x: point.x - arrowLength * Math.cos(direction - arrowAngle), y: point.y - arrowLength * Math.sin(direction - arrowAngle) },
+        right: { x: point.x - arrowLength * Math.cos(direction + arrowAngle), y: point.y - arrowLength * Math.sin(direction + arrowAngle) },
+      };
+    });
+    if (this.lines.stroke) {
+      this.#drawArrowPaths(arrows);
+      this.lines.stroke({ color: 0xff2222, width: 4, alpha: 1 });
+    } else {
+      this.lines.lineStyle(4, 0xff2222, 1);
+      this.#drawArrowPaths(arrows);
+    }
+  }
+
+  /**
+   * Adds the two strokes that form each arrowhead to the active PIXI path.
+   *
+   * @param {{point: object, left: object, right: object}[]} arrows
+   *   Arrowhead points to add to the path.
+   */
+  #drawArrowPaths(arrows) {
+    for (const arrow of arrows) {
+      this.lines.moveTo(arrow.point.x, arrow.point.y).lineTo(arrow.left.x, arrow.left.y)
+        .moveTo(arrow.point.x, arrow.point.y).lineTo(arrow.right.x, arrow.right.y);
+    }
+  }
+
+  /**
+   * Finds the point on a token's border closest to another token. This keeps
+   * relationship markers visible instead of drawing them beneath token art.
+   *
+   * @param {{x: number, y: number}} from
+   *   Center of the token at the other end of the relationship.
+   * @param {Token} token
+   *   Token whose border should be intersected.
+   * @returns {{x: number, y: number}}
+   *   Point on the token border facing `from`.
+   */
+  static #edgePoint(from, token) {
+    const to = token.center;
+    const halfWidth = token.w / 2;
+    const halfHeight = token.h / 2;
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    if ((!dx && !dy) || !halfWidth || !halfHeight) {
+      return to;
+    }
+    const scale = 1 / Math.max(Math.abs(dx) / halfWidth, Math.abs(dy) / halfHeight);
+    return { x: to.x - dx * scale, y: to.y - dy * scale };
   }
 }

@@ -6,7 +6,8 @@ import { MARKER_CHANGE_KEY } from "./constants.js";
 export class MarkOwnerDialog {
   /**
    * Opens the owner picker and resolves once the user applies or dismisses it.
-   * The existing DnD4e marker change is used only to preselect a candidate.
+   * The current combatant is preselected when eligible; the existing DnD4e
+   * marker change is used as a fallback.
    *
    * @param {ActiveEffect} effect
    *   Mark effect whose parent actor is named in the dialog.
@@ -17,12 +18,20 @@ export class MarkOwnerDialog {
    */
   static choose(effect, candidates) {
     const inferredOwner = effect.changes.find(change => change.key === MARKER_CHANGE_KEY)?.value;
+    const activeCombatantTokenId = game.combat?.combatant?.tokenId;
+    const currentTokenId = candidates.some(token => token.id === activeCombatantTokenId) ? activeCombatantTokenId : null;
     const options = candidates.map(token => {
-      const selected = token.actor.uuid === inferredOwner ? " selected" : "";
+      const isSelected = token.id === currentTokenId || (!currentTokenId && token.actor.uuid === inferredOwner);
+      const selected = isSelected ? " selected" : "";
       return `<option value="${token.id}"${selected}>${foundry.utils.escapeHTML(token.name)}</option>`;
     }).join("");
     const content = `<form><div class="form-group"><label>Mark owner</label><div class="form-fields"><select name="ownerTokenId">${options}</select></div></div></form>`;
 
+    return MarkOwnerDialog.#chooseWithDialogV2(effect, candidates, content);
+  }
+
+  /** @param {ActiveEffect} effect @param {Token[]} candidates @param {string} content */
+  static #chooseWithDialogV2(effect, candidates, content) {
     return new Promise(resolve => {
       let resolved = false;
       const finish = value => {
@@ -31,28 +40,25 @@ export class MarkOwnerDialog {
           resolve(value);
         }
       };
-      new Dialog({
-        title: `Choose Mark owner for ${effect.parent.name}`,
+      new foundry.applications.api.DialogV2({
+        window: { title: `Choose Mark owner for ${effect.parent.name}` },
         content,
-        buttons: {
-          apply: {
-            icon: '<i class="fas fa-check"></i>',
+        buttons: [
+          {
+            action: "apply",
+            icon: "fas fa-check",
             label: "Apply",
-            callback: html => {
-              const tokenId = html.find('[name="ownerTokenId"]').val();
+            default: true,
+            callback: (event, button, dialog) => {
+              const tokenId = dialog.element.querySelector('[name="ownerTokenId"]')?.value;
               const token = candidates.find(candidate => candidate.id === tokenId);
               finish(token ? MarkOwnerDialog.#ownershipData(token) : null);
             },
           },
-          cancel: {
-            icon: '<i class="fas fa-times"></i>',
-            label: "Cancel",
-            callback: () => finish(null),
-          },
-        },
-        default: "apply",
+          { action: "cancel", icon: "fas fa-times", label: "Cancel", callback: () => finish(null) },
+        ],
         close: () => finish(null),
-      }).render(true);
+      }).render({ force: true });
     });
   }
 
