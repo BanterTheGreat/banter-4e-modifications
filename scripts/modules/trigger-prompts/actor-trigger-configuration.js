@@ -10,7 +10,7 @@ export class ActorTriggerConfiguration {
       if (!ActorTriggerConfiguration.opportunityAttacksEnabled(actor)) {
         return [];
       }
-      return actor.items.filter(item => item.type === "power" && item.system?.attack?.isOpp)
+      return actor.items.filter(item => ActorTriggerConfiguration.#isOpportunityAttackPower(actor, item))
         .map(item => ({ id: `opportunity:${item.id}`, itemId: item.id, triggerId: trigger.id, parameters: {}, item }));
     }
     return ActorTriggerConfiguration.assignments(actor)
@@ -33,7 +33,7 @@ export class ActorTriggerConfiguration {
   /** @param {Actor} actor */
   static show(actor) {
     const checked = ActorTriggerConfiguration.opportunityAttacksEnabled(actor) ? "checked" : "";
-    const opportunityPowers = actor.items.filter(item => item.type === "power" && item.system?.attack?.isOpp);
+    const opportunityPowers = actor.items.filter(item => ActorTriggerConfiguration.#isOpportunityAttackPower(actor, item));
     const opportunitySummary = opportunityPowers.length
       ? `<ul>${opportunityPowers.map(item => `<li>${foundry.utils.escapeHTML(item.name)}</li>`).join("")}</ul>`
       : `<p class="hint">No powers are marked as opportunity attacks.</p>`;
@@ -41,7 +41,7 @@ export class ActorTriggerConfiguration {
       .map(trigger => ActorTriggerConfiguration.#summary(actor, trigger)).filter(Boolean).join("");
     const content = `<form class="${TRIGGER_PROMPT_UI.CONFIG_CLASS}">
       <section class="trigger-prompts-config__row">
-        <div class="trigger-prompts-config__details"><strong>Opportunity Attacks</strong><p class="hint">Offer every power marked by DnD4e as an opportunity attack.</p>${opportunitySummary}</div>
+        <div class="trigger-prompts-config__details"><strong>Opportunity Attacks</strong><p class="hint">Offer every power marked by DnD4e as an opportunity attack, plus Basic Attacks for NPCs.</p>${opportunitySummary}</div>
         <label><input type="checkbox" name="opportunityAttack.enabled" ${checked}> Enabled</label>
       </section>
       <h3>Power trigger assignments</h3>
@@ -154,6 +154,15 @@ export class ActorTriggerConfiguration {
     return context.distanceSquares <= (Number.isFinite(range) && range >= 0 ? range : trigger.defaultRangeSquares);
   }
 
+  /** @param {Actor} actor @param {Item} item */
+  static #isOpportunityAttackPower(actor, item) {
+    if (item.type !== "power") {
+      return false;
+    }
+    // UGLY NPC HACK: legacy DnD4e records NPC opportunity attacks as Basic Attacks, not as opportunity attacks.
+    return item.system?.attack?.isOpp || (actor.type === "NPC" && item.system?.attack?.isBasic);
+  }
+
   /** @param {Actor} actor */
   static #normalized(actor) {
     const stored = actor.getFlag(MODULE_NAME, TRIGGER_CONFIGURATION_FLAG) ?? {};
@@ -171,7 +180,7 @@ export class ActorTriggerConfiguration {
       if (selection === ABILITY_SELECTION.BASIC_ATTACKS) {
         items = actor.items.filter(item => item.type === "power" && item.system?.attack?.isBasic);
       } else if (selection === ABILITY_SELECTION.OPPORTUNITY_ATTACKS) {
-        items = actor.items.filter(item => item.type === "power" && item.system?.attack?.isOpp);
+        items = actor.items.filter(item => ActorTriggerConfiguration.#isOpportunityAttackPower(actor, item));
       } else {
         const itemId = selection?.startsWith(ABILITY_SELECTION.ITEM_PREFIX) ? selection.slice(ABILITY_SELECTION.ITEM_PREFIX.length) : selection;
         const item = actor.items.get(itemId);

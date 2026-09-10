@@ -4,6 +4,8 @@
 
 Moved configurable trigger assignments into actor-owned records edited from each embedded power sheet, allowing several powers to use the same trigger with independent parameters such as range. The actor dialog now controls Opportunity Attacks and summarizes assigned power triggers, qualifying prompts offer every matching power, and deleting a power cleans up its assignments while stale references are ignored defensively.
 
+NPC Basic Attacks are also offered as Opportunity Attacks because legacy DnD4e represents NPC opportunity attacks that way.
+
 ## 1.2.2 — Trigger Ability Categories
 
 Replaced trigger prompts' name-based default ability lookup with `Basic Attacks` and `Opportunity Attacks` selector options backed by the DnD4e system's existing attack metadata. Category selections use the first matching actor power, opportunity-attack prompts default to opportunity attacks.
