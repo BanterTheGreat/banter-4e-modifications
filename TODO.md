@@ -16,11 +16,10 @@ are variants of the same underlying condition.
 6. You take acid, cold, fire, or lightning damage.
 7. An enemy hits you and deals damage.
 8. An attack against AC or Reflex misses you.
-9. A marked enemy becomes bloodied.
-10. You are hit by an attack.
-11. You make a saving throw and dislike the result.
-12. An enemy within 10 squares hits you.
-13. An enemy within 20 squares hits you with a ranged attack.
+9. You are hit by an attack.
+10. You make a saving throw and dislike the result.
+11. An enemy within 10 squares hits you.
+12. An enemy within 20 squares hits you with a ranged attack.
 
 ## Configuration directions to preserve
 

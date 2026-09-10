@@ -4,12 +4,15 @@ export const TRIGGER_ID = Object.freeze({
   ENEMY_MISSES_YOU: "enemy-misses-you",
   ENEMY_MISSES_ALLY: "enemy-misses-ally",
   ENEMY_HITS_YOU: "enemy-hits-you",
+  MARKED_CREATURE_BLOODIED: "marked-creature-bloodied",
+  MARKED_CREATURE_SHIFTS_ADJACENT: "marked-creature-moves-adjacent",
 });
 
 /** Event types accepted by CombatTrigger.evaluate. */
 export const TRIGGER_EVENT_TYPE = Object.freeze({
   MOVEMENT: "movement",
   ATTACK_RESULT: "attack-result",
+  BLOODIED: "bloodied",
 });
 
 /** Actions exposed by a private trigger-prompt chat card. */

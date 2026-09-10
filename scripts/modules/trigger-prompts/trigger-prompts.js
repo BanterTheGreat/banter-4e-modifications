@@ -64,6 +64,18 @@ export class TriggerPrompts {
     await game.TriggerPrompts.dispatcher.evaluateMovement(document, changes);
   }
 
+  /**
+   * Passes completed HP updates to the primary-GM dispatcher. DnD4e carries
+   * the previous HP value in the update options.
+   *
+   * @param {Actor} actor
+   * @param {object} changes
+   * @param {object} options
+   */
+  static async onUpdateActor(actor, changes, options) {
+    await game.TriggerPrompts?.dispatcher.evaluateBloodied(actor, changes, options);
+  }
+
   /** @param {object} app @param {object[]} buttons */
   static onGetActorSheetHeaderButtons(app, buttons) {
     const actor = app.actor;

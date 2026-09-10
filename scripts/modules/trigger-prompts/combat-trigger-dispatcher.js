@@ -2,6 +2,7 @@ import { Logger } from "../../shared/logger.js";
 import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "./constants.js";
 import { ActorTriggerConfiguration } from "./actor-trigger-configuration.js";
 import { getTrigger, TRIGGERS } from "./trigger-registry.js";
+import { MarkOwnershipStore } from "../mark-ownership/mark-ownership-store.js";
 
 /** Evaluates combat events on the primary GM and delivers eligible prompts. */
 export class CombatTriggerDispatcher {
@@ -51,6 +52,45 @@ export class CombatTriggerDispatcher {
         y: changes.y ?? document.y,
       },
     });
+    await this.#dispatch(TRIGGER_ID.MARKED_CREATURE_SHIFTS_ADJACENT, {
+      type: TRIGGER_EVENT_TYPE.MOVEMENT,
+      combatant,
+      sceneId: document.parent.id,
+      tokenId: document.id,
+      destination: {
+        x: changes.x ?? document.x,
+        y: changes.y ?? document.y,
+      },
+    });
+  }
+
+  /**
+   * Dispatches a bloodied event when HP crosses the actor's threshold.
+   *
+   * @param {Actor} actor
+   * @param {object} changes
+   * @param {object} options
+   */
+  async evaluateBloodied(actor, changes, options) {
+    if (!this.#canEvaluate()) {
+      return;
+    }
+    const oldHp = options.dnd4e?.hp?.hp;
+    const newHp = actor.system.attributes?.hp?.value;
+    const threshold = actor.system.details?.bloodied ?? actor.system.attributes?.hp?.max / 2;
+    if (!Number.isFinite(oldHp) || !Number.isFinite(newHp) || oldHp <= threshold || newHp > threshold) {
+      return;
+    }
+    for (const combatant of game.combat.combatants) {
+      if (combatant.actor?.uuid === actor.uuid) {
+        await this.#dispatch(TRIGGER_ID.MARKED_CREATURE_BLOODIED, {
+          type: TRIGGER_EVENT_TYPE.BLOODIED,
+          combatant,
+          sceneId: combatant.sceneId,
+          tokenId: combatant.tokenId,
+        });
+      }
+    }
   }
 
   /** @param {object} context */
@@ -100,7 +140,13 @@ export class CombatTriggerDispatcher {
   #canEvaluate() { return game.user.isGM && game.combat?.started && game.users.filter(user => user.active && user.isGM).sort((left, right) => left.id.localeCompare(right.id))[0]?.id === game.user.id; }
   #combatant(sceneId, tokenId) { return game.combat?.combatants.find(combatant => combatant.sceneId === sceneId && combatant.tokenId === tokenId); }
   #token(sceneId, tokenId) { return game.scenes.get(sceneId)?.tokens.get(tokenId); }
-  #triggerServices() { return { combatants: game.combat.combatants, getToken: (sceneId, tokenId) => this.#token(sceneId, tokenId), areHostile: (left, right) => left.disposition !== right.disposition, areAllies: (left, right) => left.disposition === right.disposition, rangeSquares: (actor, trigger) => ActorTriggerConfiguration.rangeSquares(actor, trigger), isWithinRange: (left, right, rangeSquares) => rangeSquares === null || this.#distanceSquares(left, right) <= rangeSquares, movesAdjacent: (mover, destination, candidate) => this.#movesAdjacent(mover, destination, candidate) }; }
+  #triggerServices() { return { combatants: game.combat.combatants, getToken: (sceneId, tokenId) => this.#token(sceneId, tokenId), markOwner: target => this.#markOwner(target), areHostile: (left, right) => left.disposition !== right.disposition, areAllies: (left, right) => left.disposition === right.disposition, rangeSquares: (actor, trigger) => ActorTriggerConfiguration.rangeSquares(actor, trigger), isWithinRange: (left, right, rangeSquares) => rangeSquares === null || this.#distanceSquares(left, right) <= rangeSquares, movesAdjacent: (mover, destination, candidate) => this.#movesAdjacent(mover, destination, candidate) }; }
+
+  /** @param {TokenDocument} target @returns {TokenDocument|null} */
+  #markOwner(target) {
+    const owner = MarkOwnershipStore.ownerForTarget(target);
+    return owner && this.#combatant(owner.parent.id, owner.id) ? owner : null;
+  }
 
   /** @param {object} context @param {object} target */
   #outcome(context, target) {
