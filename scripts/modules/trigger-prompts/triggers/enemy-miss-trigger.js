@@ -1,5 +1,5 @@
 import { CombatTrigger } from "./combat-trigger.js";
-import { ABILITY_SELECTION, TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
+import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
 
 /**
  * Detects an enemy missing a combatant and finds nearby eligible allies.
@@ -9,8 +9,6 @@ export class EnemyMissTrigger extends CombatTrigger {
     super({
       id: TRIGGER_ID.ENEMY_MISSES_ALLY,
       label: "Enemy misses you or an ally",
-      configurable: true,
-      defaultAbilitySelection: ABILITY_SELECTION.BASIC_ATTACKS,
       defaultRangeSquares: 10,
       description: "An enemy misses this actor or an allied combatant within the configured range.",
     });
@@ -30,11 +28,12 @@ export class EnemyMissTrigger extends CombatTrigger {
 
     return services.combatants
       .map(combatant => services.getToken(combatant.sceneId, combatant.tokenId))
-      .filter(candidate => candidate && services.areAllies(candidate, missedTarget) && services.isWithinRange(candidate, missedTarget, services.rangeSquares(candidate.actor, this)))
+      .filter(candidate => candidate && services.areAllies(candidate, missedTarget))
       .map(candidate => ({
         actor: candidate.actor,
         sourceName: attacker.name,
         detail: `${attacker.name} missed ${missedTarget.name}.`,
+        distanceSquares: services.distanceSquares(candidate, missedTarget),
       }));
   }
 }

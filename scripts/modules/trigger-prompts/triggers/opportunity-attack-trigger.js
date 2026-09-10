@@ -1,5 +1,5 @@
 import { CombatTrigger } from "./combat-trigger.js";
-import { ABILITY_SELECTION, TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
+import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
 
 /**
  * Detects hostile movement that starts or passes adjacent to a configured actor.
@@ -9,8 +9,6 @@ export class OpportunityAttackTrigger extends CombatTrigger {
     super({
       id: TRIGGER_ID.OPPORTUNITY_ATTACK,
       label: "Possible opportunity attack",
-      configurable: false,
-      defaultAbilitySelection: ABILITY_SELECTION.OPPORTUNITY_ATTACKS,
       description: "A hostile combatant's movement starts or passes adjacent to this actor; ending adjacent alone does not qualify.",
     });
   }

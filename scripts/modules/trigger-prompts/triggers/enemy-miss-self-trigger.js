@@ -1,5 +1,5 @@
 import { CombatTrigger } from "./combat-trigger.js";
-import { ABILITY_SELECTION, TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
+import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
 
 /** Detects an enemy missing the configured actor. */
 export class EnemyMissSelfTrigger extends CombatTrigger {
@@ -7,8 +7,6 @@ export class EnemyMissSelfTrigger extends CombatTrigger {
     super({
       id: TRIGGER_ID.ENEMY_MISSES_YOU,
       label: "Enemy misses you",
-      configurable: true,
-      defaultAbilitySelection: ABILITY_SELECTION.BASIC_ATTACKS,
       description: "An enemy misses this actor.",
     });
   }

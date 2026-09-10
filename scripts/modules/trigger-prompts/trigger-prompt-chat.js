@@ -8,13 +8,14 @@ export class TriggerPromptChat {
     this.socket = socket;
   }
 
-  /** @param {{trigger: object, actor: Actor, item: Item, context: object, recipientIds: string[]}} prompt */
-  async create({ trigger, actor, item, context, recipientIds }) {
+  /** @param {{trigger: object, actor: Actor, assignments: object[], context: object, recipientIds: string[]}} prompt */
+  async create({ trigger, actor, assignments, context, recipientIds }) {
+    const choices = assignments.map(assignment => `<button data-trigger-prompt-action="${TRIGGER_PROMPT_ACTION.USE}" data-item-id="${assignment.item.id}">${foundry.utils.escapeHTML(assignment.item.name)}</button>`).join("");
     await ChatMessage.create({
       whisper: recipientIds,
       flavor: `<b>${foundry.utils.escapeHTML(trigger.label)}</b>`,
-      content: `<p>${foundry.utils.escapeHTML(context.detail)}</p><div class="${TRIGGER_PROMPT_UI.PROMPT_ACTIONS_CLASS}"><button data-trigger-prompt-action="${TRIGGER_PROMPT_ACTION.USE}">${foundry.utils.escapeHTML(item.name)}</button><button data-trigger-prompt-action="${TRIGGER_PROMPT_ACTION.DISMISS}">${TRIGGER_PROMPT_UI.DISMISS_LABEL}</button></div>`,
-      flags: { [TRIGGER_PROMPT_FLAG]: { triggerId: trigger.id, actorId: actor.id, itemId: item.id, recipientIds, used: false } },
+      content: `<p>${foundry.utils.escapeHTML(context.detail)}</p><div class="${TRIGGER_PROMPT_UI.PROMPT_ACTIONS_CLASS}">${choices}<button data-trigger-prompt-action="${TRIGGER_PROMPT_ACTION.DISMISS}">${TRIGGER_PROMPT_UI.DISMISS_LABEL}</button></div>`,
+      flags: { [TRIGGER_PROMPT_FLAG]: { triggerId: trigger.id, actorId: actor.id, choices: assignments.map(assignment => ({ assignmentId: assignment.id, itemId: assignment.item.id })), recipientIds, used: false } },
     });
   }
 
@@ -30,7 +31,7 @@ export class TriggerPromptChat {
     }
     html.find(`[data-trigger-prompt-action='${TRIGGER_PROMPT_ACTION.USE}']`).on("click", async event => {
       event.preventDefault();
-      await this.#use(message);
+      await this.#use(message, event.currentTarget.dataset.itemId ?? prompt.itemId);
     });
     html.find(`[data-trigger-prompt-action='${TRIGGER_PROMPT_ACTION.DISMISS}']`).on("click", async event => {
       event.preventDefault();
@@ -38,9 +39,9 @@ export class TriggerPromptChat {
     });
   }
 
-  /** @param {ChatMessage} message */
-  async #use(message) {
-    const prompt = await this.socket.executeAsGM(TRIGGER_SOCKET_ACTION.CLAIM_PROMPT, message.id);
+  /** @param {ChatMessage} message @param {string} itemId */
+  async #use(message, itemId) {
+    const prompt = await this.socket.executeAsGM(TRIGGER_SOCKET_ACTION.CLAIM_PROMPT, message.id, itemId);
     if (!prompt) {
       return;
     }

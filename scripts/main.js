@@ -4,6 +4,7 @@ import { SocketHelper } from "./modules/player-defense/socket-helper.js";
 import { MarkOwnership } from "./modules/mark-ownership/mark-ownership.js";
 import { MarkOwnershipStore } from "./modules/mark-ownership/mark-ownership-store.js";
 import { TriggerPrompts } from "./modules/trigger-prompts/trigger-prompts.js";
+import { PowerTriggerConfiguration } from "./modules/trigger-prompts/power-trigger-configuration.js";
 import { TRIGGER_SOCKET_ACTION } from "./modules/trigger-prompts/constants.js";
 import { MODULE_NAME, ENABLE_ACTIVE_DEFENSE, ENABLE_DEBUG_LOGGING, ENABLE_MARK_OWNERSHIP, ENABLE_TRIGGER_PROMPTS } from "./shared/globals.js";
 
@@ -122,7 +123,10 @@ Hooks.on("i18nInit", () => {
     Hooks.on("preUpdateToken", TriggerPrompts.onPreUpdateToken);
     Hooks.on("updateActor", TriggerPrompts.onUpdateActor);
     Hooks.on("getActorSheetHeaderButtons", TriggerPrompts.onGetActorSheetHeaderButtons);
+    Hooks.on("getItemSheetHeaderButtons", PowerTriggerConfiguration.onGetItemSheetHeaderButtons);
     Hooks.on("getHeaderControlsApplicationV2", TriggerPrompts.onGetHeaderControlsApplicationV2);
+    Hooks.on("getHeaderControlsApplicationV2", PowerTriggerConfiguration.onGetHeaderControlsApplicationV2);
+    Hooks.on("deleteItem", PowerTriggerConfiguration.onDeleteItem);
     Hooks.on("renderChatMessage", (message, html) => TriggerPrompts.onRenderChatMessage(message, html));
   }
 });

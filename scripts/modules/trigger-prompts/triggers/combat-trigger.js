@@ -2,11 +2,11 @@
  * Base contract for a combat trigger definition.
  *
  * A trigger decides whether an event qualifies and returns actor-specific
- * prompt contexts. TriggerPrompts owns only event dispatch, actor settings,
+ * prompt contexts. TriggerPrompts owns only event dispatch, actor assignments,
  * and chat-message delivery.
  */
 export class CombatTrigger {
-  /** @param {{id: string, label: string, configurable: boolean, defaultAbilitySelection: string, description: string, defaultRangeSquares?: number}} definition */
+  /** @param {{id: string, label: string, description: string, defaultRangeSquares?: number}} definition */
   constructor(definition) {
     Object.assign(this, definition);
   }

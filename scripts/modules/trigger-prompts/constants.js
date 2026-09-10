@@ -42,6 +42,8 @@ export const ABILITY_SELECTION = Object.freeze({
 export const TRIGGER_PROMPT_UI = Object.freeze({
   CONFIG_CLASS: "trigger-prompts-config",
   CONFIG_ACTION: "configure-trigger-prompts",
+  ITEM_CONFIG_CLASS: "trigger-prompts-item-config",
+  ITEM_CONFIG_ACTION: "configure-item-trigger-prompts",
   PROMPT_ACTIONS_CLASS: "trigger-prompts-message__actions",
   DISMISS_LABEL: "Ignore",
 });

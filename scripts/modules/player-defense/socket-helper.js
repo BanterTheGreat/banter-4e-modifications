@@ -121,19 +121,21 @@ export class SocketHelper {
      * posted to chat.
      *
      * @param {string} messageId
+     * @param {string} itemId
      * @returns {Promise<object|null>}
      */
-    static async claimTriggerPrompt(messageId) {
+    static async claimTriggerPrompt(messageId, itemId) {
         return SocketHelper.#queueUpdate(async () => {
             const message = game.messages.get(messageId);
             const prompt = message?.flags?.[TRIGGER_PROMPT_FLAG];
-            if (!prompt || prompt.used) {
+            const allowedItemIds = prompt?.choices?.map(choice => choice.itemId) ?? [prompt?.itemId];
+            if (!prompt || prompt.used || !allowedItemIds.includes(itemId)) {
                 return null;
             }
 
             prompt.used = true;
             await message.update({ flags: { ...message.flags, [TRIGGER_PROMPT_FLAG]: prompt } });
-            return prompt;
+            return { ...prompt, itemId };
         });
     }
 

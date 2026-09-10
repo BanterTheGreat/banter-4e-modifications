@@ -1,5 +1,5 @@
 import { CombatTrigger } from "./combat-trigger.js";
-import { ABILITY_SELECTION, TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
+import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
 
 /** Detects a marked creature moving while adjacent to its Mark owner. */
 export class MarkedCreatureMovesAdjacentTrigger extends CombatTrigger {
@@ -7,8 +7,6 @@ export class MarkedCreatureMovesAdjacentTrigger extends CombatTrigger {
     super({
       id: TRIGGER_ID.MARKED_CREATURE_SHIFTS_ADJACENT,
       label: "Adjacent creature marked by you shifts",
-      configurable: true,
-      defaultAbilitySelection: ABILITY_SELECTION.BASIC_ATTACKS,
       description: "A creature carrying a Mark owned by this actor shifts while adjacent to the actor.",
     });
   }

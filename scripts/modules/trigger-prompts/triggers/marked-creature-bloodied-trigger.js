@@ -1,5 +1,5 @@
 import { CombatTrigger } from "./combat-trigger.js";
-import { ABILITY_SELECTION, TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
+import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "../constants.js";
 
 /** Detects a creature crossing its bloodied threshold while owned by a Mark. */
 export class MarkedCreatureBloodiedTrigger extends CombatTrigger {
@@ -7,8 +7,6 @@ export class MarkedCreatureBloodiedTrigger extends CombatTrigger {
     super({
       id: TRIGGER_ID.MARKED_CREATURE_BLOODIED,
       label: "Creature marked by you becomes bloodied",
-      configurable: true,
-      defaultAbilitySelection: ABILITY_SELECTION.BASIC_ATTACKS,
       description: "A creature carrying a Mark owned by this actor becomes bloodied.",
     });
   }

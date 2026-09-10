@@ -1,4 +1,3 @@
-import { Logger } from "../../shared/logger.js";
 import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "./constants.js";
 import { ActorTriggerConfiguration } from "./actor-trigger-configuration.js";
 import { getTrigger, TRIGGERS } from "./trigger-registry.js";
@@ -125,22 +124,18 @@ export class CombatTriggerDispatcher {
 
   /** @param {object} trigger @param {{actor: Actor, detail: string}} context */
   async #deliver(trigger, context) {
-    if (!ActorTriggerConfiguration.isEnabled(context.actor, trigger)) {
-      return;
-    }
-    const item = ActorTriggerConfiguration.resolveAbility(context.actor, trigger);
-    if (!item) {
-      Logger.warn("Trigger prompt suppressed because its ability was not found", { actorId: context.actor.id, actorName: context.actor.name, triggerId: trigger.id });
+    const assignments = ActorTriggerConfiguration.assignmentsFor(context.actor, trigger, context);
+    if (!assignments.length) {
       return;
     }
     const recipientIds = game.users.filter(user => user.active && (user.isGM || context.actor.testUserPermission(user, "OWNER"))).map(user => user.id);
-    await this.promptChat.create({ trigger, actor: context.actor, item, context, recipientIds });
+    await this.promptChat.create({ trigger, actor: context.actor, assignments, context, recipientIds });
   }
 
   #canEvaluate() { return game.user.isGM && game.combat?.started && game.users.filter(user => user.active && user.isGM).sort((left, right) => left.id.localeCompare(right.id))[0]?.id === game.user.id; }
   #combatant(sceneId, tokenId) { return game.combat?.combatants.find(combatant => combatant.sceneId === sceneId && combatant.tokenId === tokenId); }
   #token(sceneId, tokenId) { return game.scenes.get(sceneId)?.tokens.get(tokenId); }
-  #triggerServices() { return { combatants: game.combat.combatants, getToken: (sceneId, tokenId) => this.#token(sceneId, tokenId), markOwner: target => this.#markOwner(target), areHostile: (left, right) => left.disposition !== right.disposition, areAllies: (left, right) => left.disposition === right.disposition, rangeSquares: (actor, trigger) => ActorTriggerConfiguration.rangeSquares(actor, trigger), isWithinRange: (left, right, rangeSquares) => rangeSquares === null || this.#distanceSquares(left, right) <= rangeSquares, movesAdjacent: (mover, destination, candidate) => this.#movesAdjacent(mover, destination, candidate) }; }
+  #triggerServices() { return { combatants: game.combat.combatants, getToken: (sceneId, tokenId) => this.#token(sceneId, tokenId), markOwner: target => this.#markOwner(target), areHostile: (left, right) => left.disposition !== right.disposition, areAllies: (left, right) => left.disposition === right.disposition, distanceSquares: (left, right) => this.#distanceSquares(left, right), movesAdjacent: (mover, destination, candidate) => this.#movesAdjacent(mover, destination, candidate) }; }
 
   /** @param {TokenDocument} target @returns {TokenDocument|null} */
   #markOwner(target) {
