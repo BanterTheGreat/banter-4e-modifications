@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — Per-Power Trigger Assignments
+## 1.3 — Per-Power Trigger Assignments
 
 Moved configurable trigger assignments into actor-owned records edited from each embedded power sheet, allowing several powers to use the same trigger with independent parameters such as range. The actor dialog now controls Opportunity Attacks and summarizes assigned power triggers, qualifying prompts offer every matching power, and deleting a power cleans up its assignments while stale references are ignored defensively.
 
