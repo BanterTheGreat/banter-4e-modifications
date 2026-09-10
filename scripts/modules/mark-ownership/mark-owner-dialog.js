@@ -16,7 +16,7 @@ export class MarkOwnerDialog {
    * @returns {Promise<object|null>}
    *   Selected owner references, or null when the dialog is cancelled.
    */
-  static choose(effect, candidates) {
+  static chooseMarkOwner(effect, candidates) {
     const inferredOwner = effect.changes.find(change => change.key === MARKER_CHANGE_KEY)?.value;
     const activeCombatantTokenId = game.combat?.combatant?.tokenId;
     const currentTokenId = candidates.some(token => token.id === activeCombatantTokenId) ? activeCombatantTokenId : null;
@@ -27,11 +27,11 @@ export class MarkOwnerDialog {
     }).join("");
     const content = `<form><div class="form-group"><label>Mark owner</label><div class="form-fields"><select name="ownerTokenId">${options}</select></div></div></form>`;
 
-    return MarkOwnerDialog.#chooseWithDialogV2(effect, candidates, content);
+    return MarkOwnerDialog.#showOwnerSelectionDialog(effect, candidates, content);
   }
 
   /** @param {ActiveEffect} effect @param {Token[]} candidates @param {string} content */
-  static #chooseWithDialogV2(effect, candidates, content) {
+  static #showOwnerSelectionDialog(effect, candidates, content) {
     return new Promise(resolve => {
       let resolved = false;
       const finish = value => {
@@ -52,7 +52,7 @@ export class MarkOwnerDialog {
             callback: (event, button, dialog) => {
               const tokenId = dialog.element.querySelector('[name="ownerTokenId"]')?.value;
               const token = candidates.find(candidate => candidate.id === tokenId);
-              finish(token ? MarkOwnerDialog.#ownershipData(token) : null);
+              finish(token ? MarkOwnerDialog.#createOwnerReference(token) : null);
             },
           },
           { action: "cancel", icon: "fas fa-times", label: "Cancel", callback: () => finish(null) },
@@ -71,7 +71,7 @@ export class MarkOwnerDialog {
    * @returns {object}
    *   Actor, token, scene, and combat identifiers safe to send via SocketLib.
    */
-  static #ownershipData(owner) {
+  static #createOwnerReference(owner) {
     return {
       actorUuid: owner.actor.uuid,
       ownerSceneId: owner.scene.id,

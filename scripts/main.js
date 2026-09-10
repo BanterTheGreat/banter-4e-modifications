@@ -62,9 +62,9 @@ Hooks.once("socketlib.ready", () => {
   socket.register(TRIGGER_SOCKET_ACTION.EVALUATE_ATTACK, TriggerPrompts.evaluateCapturedAttackFromSocket);
   socket.register(TRIGGER_SOCKET_ACTION.CLAIM_PROMPT, SocketHelper.claimTriggerPrompt);
   socket.register(TRIGGER_SOCKET_ACTION.EXPIRE_PROMPT, SocketHelper.expireTriggerPrompt);
-  socket.register("setMarkOwner", MarkOwnershipStore.assign);
-  socket.register("removeMarksForCombatant", MarkOwnershipStore.removeForCombatant);
-  socket.register("removeMarksForCombat", MarkOwnershipStore.removeForCombat);
+  socket.register("setMarkOwner", MarkOwnershipStore.assignOwnersToMarks);
+  socket.register("removeMarksForCombatant", MarkOwnershipStore.removeMarksForCombatant);
+  socket.register("removeMarksForCombat", MarkOwnershipStore.removeMarksForCombat);
 });
 
 Hooks.once("ready", () => {
@@ -91,18 +91,18 @@ Hooks.on("i18nInit", () => {
   }
 });
 Hooks.on("createActiveEffect", MarkOwnership.onCreateActiveEffect);
-Hooks.on("updateActiveEffect", MarkOwnership.onVisualStateChanged);
-Hooks.on("deleteActiveEffect", MarkOwnership.onVisualStateChanged);
+Hooks.on("updateActiveEffect", MarkOwnership.onRelationshipVisualStateChanged);
+Hooks.on("deleteActiveEffect", MarkOwnership.onRelationshipVisualStateChanged);
 Hooks.on("deleteCombatant", MarkOwnership.onDeleteCombatant);
 Hooks.on("deleteToken", MarkOwnership.onDeleteToken);
 Hooks.on("combatEnd", MarkOwnership.onCombatEnd);
 Hooks.on("deleteCombat", MarkOwnership.onDeleteCombat);
 Hooks.on("canvasReady", MarkOwnership.onCanvasReady);
 Hooks.on("canvasTearDown", MarkOwnership.onCanvasTearDown);
-Hooks.on("hoverToken", MarkOwnership.onVisualStateChanged);
-Hooks.on("controlToken", MarkOwnership.onVisualStateChanged);
-Hooks.on("targetToken", MarkOwnership.onVisualStateChanged);
-Hooks.on("refreshToken", MarkOwnership.onVisualStateChanged);
+Hooks.on("hoverToken", MarkOwnership.onRelationshipVisualStateChanged);
+Hooks.on("controlToken", MarkOwnership.onRelationshipVisualStateChanged);
+Hooks.on("targetToken", MarkOwnership.onRelationshipVisualStateChanged);
+Hooks.on("refreshToken", MarkOwnership.onRelationshipVisualStateChanged);
 
 // Player Defense
 

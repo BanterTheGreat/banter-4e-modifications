@@ -17,15 +17,15 @@ export class MarkOwnershipStore {
    * @returns {Promise<boolean>}
    *   True after every resolvable assignment in the batch has been processed.
    */
-  static async assign(assignments, owner) {
+  static async assignOwnersToMarks(assignments, owner) {
     for (const assignment of assignments) {
       const effect = await fromUuid(assignment.effectUuid);
       if (!effect || !isMark(effect)) {
         continue;
       }
 
-      const context = MarkOwnershipStore.#validateAssignment(effect, assignment, owner);
-      if (!context) {
+      const validatedTarget = MarkOwnershipStore.#validateOwnershipAssignment(effect, assignment, owner);
+      if (!validatedTarget) {
         if (!game.combats.get(assignment.combatId)?.started) {
           await effect.delete();
         }
@@ -46,8 +46,8 @@ export class MarkOwnershipStore {
         changes,
         [`flags.${MODULE_NAME}.${OWNERSHIP_FLAG}`]: {
           ...owner,
-          targetSceneId: context.targetSceneId,
-          targetTokenId: context.targetTokenId,
+          targetSceneId: validatedTarget.targetSceneId,
+          targetTokenId: validatedTarget.targetTokenId,
         },
       });
     }
@@ -65,8 +65,8 @@ export class MarkOwnershipStore {
    * @returns {Promise<void>}
    *   Resolves after all matching Mark effects have been deleted.
    */
-  static async removeForCombatant(sceneId, tokenId) {
-    await MarkOwnershipStore.#deleteManagedMarks(ownership =>
+  static async removeMarksForCombatant(sceneId, tokenId) {
+    await MarkOwnershipStore.#deleteManagedMarksMatching(ownership =>
       (ownership.ownerSceneId === sceneId && ownership.ownerTokenId === tokenId) ||
       (ownership.targetSceneId === sceneId && ownership.targetTokenId === tokenId));
   }
@@ -79,8 +79,8 @@ export class MarkOwnershipStore {
    * @returns {Promise<void>}
    *   Resolves after all matching Mark effects have been deleted.
    */
-  static async removeForCombat(combatId) {
-    await MarkOwnershipStore.#deleteManagedMarks(ownership => ownership.combatId === combatId);
+  static async removeMarksForCombat(combatId) {
+    await MarkOwnershipStore.#deleteManagedMarksMatching(ownership => ownership.combatId === combatId);
   }
 
   /**
@@ -90,7 +90,7 @@ export class MarkOwnershipStore {
    * @returns {ActiveEffect[]}
    *   Unique Mark effects carrying this module's ownership flag.
    */
-  static currentSceneEffects() {
+  static getCurrentSceneMarkEffects() {
     const effects = canvas.tokens.placeables.flatMap(token => token.actor?.effects?.filter(effect =>
       isMark(effect) && effect.getFlag(MODULE_NAME, OWNERSHIP_FLAG)) ?? []);
     return Array.from(new Map(effects.map(effect => [effect.uuid, effect])).values());
@@ -104,7 +104,7 @@ export class MarkOwnershipStore {
    * @returns {TokenDocument|null}
    *   Stored owner token, or null for an ownerless or stale relationship.
    */
-  static ownerForTarget(target) {
+  static findOwnerForTarget(target) {
     const effect = target.actor?.effects.find(candidate => {
       const ownership = candidate.getFlag(MODULE_NAME, OWNERSHIP_FLAG);
       return isMark(candidate) &&
@@ -129,7 +129,7 @@ export class MarkOwnershipStore {
    * @returns {object|null}
    *   Canonical target identifiers when valid, otherwise null.
    */
-  static #validateAssignment(effect, assignment, owner) {
+  static #validateOwnershipAssignment(effect, assignment, owner) {
     const combat = game.combats.get(assignment.combatId);
     const scene = game.scenes.get(assignment.targetSceneId);
     const targetToken = scene?.tokens.get(assignment.targetTokenId);
@@ -161,7 +161,7 @@ export class MarkOwnershipStore {
    * @returns {Promise<void>}
    *   Resolves after the effects are deleted and the canvas is redrawn.
    */
-  static async #deleteManagedMarks(predicate) {
+  static async #deleteManagedMarksMatching(predicate) {
     const actors = [
       ...game.actors,
       ...Array.from(game.scenes).flatMap(scene => scene.tokens.map(token => token.actor).filter(Boolean)),
@@ -172,6 +172,6 @@ export class MarkOwnershipStore {
       return ownership && isMark(effect) && predicate(ownership);
     });
     await Promise.all(effects.map(effect => effect.delete()));
-    game.MarkOwnership?.redraw();
+    game.MarkOwnership?.redrawRelationships();
   }
 }

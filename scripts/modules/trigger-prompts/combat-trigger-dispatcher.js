@@ -200,7 +200,7 @@ export class CombatTriggerDispatcher {
    * @returns {TokenDocument|null}
    */
   #findMarkOwner(target) {
-    const owner = MarkOwnershipStore.ownerForTarget(target);
+    const owner = MarkOwnershipStore.findOwnerForTarget(target);
     return owner && this.#findCombatantByToken(owner.parent.id, owner.id) ? owner : null;
   }
 

@@ -8,8 +8,8 @@ import { ENABLE_MARK_OWNERSHIP, MODULE_NAME } from "../../shared/globals.js";
  * Coordinates Foundry lifecycle hooks for Mark ownership.
  */
 export class MarkOwnership {
-  static pendingEffects = [];
-  static pendingFlush = null;
+  static pendingMarkEffects = [];
+  static pendingPromptFlush = null;
 
   /**
    * Creates the hook coordinator and attaches its renderer to the current canvas.
@@ -19,9 +19,9 @@ export class MarkOwnership {
    */
   constructor(socket) {
     this.socket = socket;
-    this.renderer = new MarkOwnershipRenderer();
-    this.renderer.initialize();
-    this.redraw();
+    this.relationshipRenderer = new MarkOwnershipRenderer();
+    this.relationshipRenderer.attachToCanvas();
+    this.redrawRelationships();
   }
 
   /**
@@ -41,14 +41,14 @@ export class MarkOwnership {
       return;
     }
 
-    const context = MarkOwnership.#getCombatContext(effect);
-    if (!context) {
+    const markContext = MarkOwnership.#captureCombatMarkContext(effect);
+    if (!markContext) {
       return;
     }
 
-    MarkOwnership.pendingEffects.push({ effectUuid: effect.uuid, context });
-    if (!MarkOwnership.pendingFlush) {
-      MarkOwnership.pendingFlush = setTimeout(() => MarkOwnership.#flushPendingEffects(), 0);
+    MarkOwnership.pendingMarkEffects.push({ effectUuid: effect.uuid, context: markContext });
+    if (!MarkOwnership.pendingPromptFlush) {
+      MarkOwnership.pendingPromptFlush = setTimeout(() => MarkOwnership.#flushPendingMarkEffects(), 0);
     }
   }
 
@@ -56,8 +56,8 @@ export class MarkOwnership {
    * Handles effect and token visual-state hooks by requesting a redraw from the
    * active coordinator, if the feature was initialized.
    */
-  static onVisualStateChanged() {
-    game.MarkOwnership?.redraw();
+  static onRelationshipVisualStateChanged() {
+    game.MarkOwnership?.redrawRelationships();
   }
 
   /**
@@ -75,7 +75,7 @@ export class MarkOwnership {
    */
   static async onDeleteCombatant(combatant, options, userId) {
     if (userId === game.user.id) {
-      await MarkOwnership.#requestGmAction("removeMarksForCombatant", combatant.sceneId, combatant.tokenId);
+      await MarkOwnership.#requestGmCleanup("removeMarksForCombatant", combatant.sceneId, combatant.tokenId);
     }
   }
 
@@ -94,7 +94,7 @@ export class MarkOwnership {
    */
   static async onDeleteToken(token, options, userId) {
     if (userId === game.user.id) {
-      await MarkOwnership.#requestGmAction("removeMarksForCombatant", token.parent?.id, token.id);
+      await MarkOwnership.#requestGmCleanup("removeMarksForCombatant", token.parent?.id, token.id);
     }
   }
 
@@ -109,7 +109,7 @@ export class MarkOwnership {
    */
   static async onCombatEnd(combat) {
     if (game.users.activeGM?.id === game.user.id) {
-      await MarkOwnershipStore.removeForCombat(combat.id);
+      await MarkOwnershipStore.removeMarksForCombat(combat.id);
     }
   }
 
@@ -127,7 +127,7 @@ export class MarkOwnership {
    */
   static async onDeleteCombat(combat, options, userId) {
     if (userId === game.user.id) {
-      await MarkOwnership.#requestGmAction("removeMarksForCombat", combat.id);
+      await MarkOwnership.#requestGmCleanup("removeMarksForCombat", combat.id);
     }
   }
 
@@ -138,8 +138,8 @@ export class MarkOwnership {
   static onCanvasReady() {
     const markOwnership = game.MarkOwnership;
     if (markOwnership) {
-      markOwnership.renderer.initialize();
-      markOwnership.redraw();
+      markOwnership.relationshipRenderer.attachToCanvas();
+      markOwnership.redrawRelationships();
     }
   }
 
@@ -149,15 +149,15 @@ export class MarkOwnership {
   static onCanvasTearDown() {
     const markOwnership = game.MarkOwnership;
     if (markOwnership) {
-      markOwnership.renderer.destroy();
+      markOwnership.relationshipRenderer.destroyGraphicsLayer();
     }
   }
 
   /**
    * Redraws visible Mark relationships using the current token state.
    */
-  redraw() {
-    this.renderer.draw();
+  redrawRelationships() {
+    this.relationshipRenderer.drawRelationships();
   }
 
   /**
@@ -167,21 +167,21 @@ export class MarkOwnership {
    * @returns {Promise<void>}
    *   Resolves after every queued batch has been handled.
    */
-  static async #flushPendingEffects() {
-    const pending = MarkOwnership.pendingEffects.splice(0);
-    MarkOwnership.pendingFlush = null;
+  static async #flushPendingMarkEffects() {
+    const pending = MarkOwnership.pendingMarkEffects.splice(0);
+    MarkOwnership.pendingPromptFlush = null;
 
-    for (const group of MarkOwnership.#groupPendingEffects(pending)) {
+    for (const group of MarkOwnership.#groupPendingMarkEffects(pending)) {
       const firstEffect = await fromUuid(group.assignments[0].effectUuid);
       if (!firstEffect) {
         continue;
       }
-      const candidates = MarkOwnership.#ownerCandidates(group.context);
-      const owner = candidates.length ? await MarkOwnerDialog.choose(firstEffect, candidates) : null;
+      const candidates = MarkOwnership.#findOwnerCandidates(group.context);
+      const owner = candidates.length ? await MarkOwnerDialog.chooseMarkOwner(firstEffect, candidates) : null;
       if (game.MarkOwnership?.socket) {
         await game.MarkOwnership.socket.executeAsGM("setMarkOwner", group.assignments, owner);
       } else {
-        await MarkOwnershipStore.assign(group.assignments, owner);
+        await MarkOwnershipStore.assignOwnersToMarks(group.assignments, owner);
       }
     }
   }
@@ -195,7 +195,7 @@ export class MarkOwnership {
    * @returns {object[]}
    *   Dialog groups containing assignments and a shared selection context.
    */
-  static #groupPendingEffects(pending) {
+  static #groupPendingMarkEffects(pending) {
     const groups = new Map();
     for (const entry of pending) {
       const inferredOwner = entry.context.inferredOwnerActorUuid ?? "";
@@ -221,7 +221,7 @@ export class MarkOwnership {
    * @returns {object|null}
    *   Captured combat context, or null when prompting must not occur.
    */
-  static #getCombatContext(effect) {
+  static #captureCombatMarkContext(effect) {
     const combatSceneId = typeof game.combat?.scene === "string" ? game.combat.scene : game.combat?.scene?.id;
     if (!game.combat?.started || (combatSceneId && combatSceneId !== canvas.scene?.id)) {
       return null;
@@ -250,7 +250,7 @@ export class MarkOwnership {
    * @returns {Token[]}
    *   Eligible owner token objects.
    */
-  static #ownerCandidates(context) {
+  static #findOwnerCandidates(context) {
     return game.combat.combatants
       .filter(combatant => combatant.sceneId === context.sceneId && combatant.tokenId !== context.targetTokenId)
       .map(combatant => canvas.tokens.get(combatant.tokenId))
@@ -269,14 +269,14 @@ export class MarkOwnership {
    * @returns {Promise<void>}
    *   Resolves after the remote or local cleanup finishes.
    */
-  static async #requestGmAction(action, ...args) {
+  static async #requestGmCleanup(action, ...args) {
     if (game.MarkOwnership?.socket) {
       await game.MarkOwnership.socket.executeAsGM(action, ...args);
     } else if (game.user.isGM) {
       if (action === "removeMarksForCombatant") {
-        await MarkOwnershipStore.removeForCombatant(...args);
+        await MarkOwnershipStore.removeMarksForCombatant(...args);
       } else if (action === "removeMarksForCombat") {
-        await MarkOwnershipStore.removeForCombat(...args);
+        await MarkOwnershipStore.removeMarksForCombat(...args);
       }
     }
   }

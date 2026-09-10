@@ -17,8 +17,8 @@ export class MarkOwnershipRenderer {
   /**
    * Replaces any stale graphics layer with one attached to the active canvas.
    */
-  initialize() {
-    this.destroy();
+  attachToCanvas() {
+    this.destroyGraphicsLayer();
     if (!canvas?.ready || !canvas.interface) {
       return;
     }
@@ -28,7 +28,7 @@ export class MarkOwnershipRenderer {
   /**
    * Releases the scene-specific graphics layer and its PIXI resources.
    */
-  destroy() {
+  destroyGraphicsLayer() {
     this.lines?.destroy({ children: true });
     this.lines = null;
   }
@@ -38,13 +38,13 @@ export class MarkOwnershipRenderer {
    * drawn only when both endpoints are visible and either endpoint is hovered,
    * controlled, or targeted.
    */
-  draw() {
+  drawRelationships() {
     if (!this.lines || !canvas?.ready) {
       return;
     }
 
     this.lines.clear();
-    for (const effect of MarkOwnershipStore.currentSceneEffects()) {
+    for (const effect of MarkOwnershipStore.getCurrentSceneMarkEffects()) {
       const ownership = effect.getFlag(MODULE_NAME, OWNERSHIP_FLAG);
       if (ownership?.targetSceneId !== canvas.scene.id || ownership.ownerSceneId !== canvas.scene.id) {
         continue;
