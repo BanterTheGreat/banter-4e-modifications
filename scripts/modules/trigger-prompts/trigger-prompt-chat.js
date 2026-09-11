@@ -27,13 +27,14 @@ export class TriggerPromptChat {
    * @returns {Promise<void>}
    */
   async createPromptCard({ trigger, actor, assignments, context: promptContext, recipientIds }) {
-    const choices = assignments.map(assignment => `<button data-trigger-prompt-action="${TRIGGER_PROMPT_ACTION.USE}" data-item-id="${assignment.item.id}">${foundry.utils.escapeHTML(assignment.item.name)}</button>`).join("");
+    const choices = assignments.filter(assignment => assignment.item)
+      .map(assignment => `<button data-trigger-prompt-action="${TRIGGER_PROMPT_ACTION.USE}" data-item-id="${assignment.item.id}">${foundry.utils.escapeHTML(assignment.item.name)}</button>`).join("");
     const expiresAt = Date.now() + TRIGGER_PROMPT_TIMEOUT_MS;
     const message = await ChatMessage.create({
       whisper: recipientIds,
       flavor: `<b>${foundry.utils.escapeHTML(trigger.label)}</b>`,
       content: `<p>${foundry.utils.escapeHTML(promptContext.detail)}</p><div class="${TRIGGER_PROMPT_UI.PROMPT_ACTIONS_CLASS}">${choices}<button data-trigger-prompt-action="${TRIGGER_PROMPT_ACTION.DISMISS}">${TRIGGER_PROMPT_UI.DISMISS_LABEL} (10)</button></div>`,
-      flags: { [TRIGGER_PROMPT_FLAG]: { triggerId: trigger.id, actorId: actor.id, choices: assignments.map(assignment => ({ assignmentId: assignment.id, itemId: assignment.item.id })), recipientIds, used: false, expiresAt } },
+      flags: { [TRIGGER_PROMPT_FLAG]: { triggerId: trigger.id, actorId: actor.id, choices: assignments.filter(assignment => assignment.item).map(assignment => ({ assignmentId: assignment.id, itemId: assignment.item.id })), recipientIds, used: false, expiresAt } },
     });
     setTimeout(() => this.socket.executeAsGM(TRIGGER_SOCKET_ACTION.EXPIRE_PROMPT, message.id)
       .catch(error => Logger.error("Failed to expire trigger prompt", { messageId: message.id, error: error.message })), TRIGGER_PROMPT_TIMEOUT_MS);

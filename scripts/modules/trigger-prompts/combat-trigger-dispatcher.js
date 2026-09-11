@@ -114,19 +114,20 @@ export class CombatTriggerDispatcher {
   }
 
   /**
-   * Evaluates a miss produced by the optional Player Defense workflow.
+   * Evaluates an outcome produced by the optional Player Defense workflow.
    *
    * @param {object} context
+   * @param {"hit"|"miss"} outcome
    * @returns {Promise<void>}
    */
-  async evaluateActiveDefenseMiss(activeDefenseContext) {
+  async evaluateActiveDefenseOutcome(activeDefenseContext, outcome) {
     if (!this.#canEvaluate()) {
       return;
     }
     const attacker = this.#findCombatantByToken(activeDefenseContext.sceneId, activeDefenseContext.attackerTokenId);
     const target = this.#findCombatantByToken(activeDefenseContext.targetSceneId, activeDefenseContext.targetTokenId);
     if (attacker && target) {
-      await this.#evaluateAttackResultTriggers({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome: "miss", attacker, target });
+      await this.#evaluateAttackResultTriggers({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome, attacker, target });
     }
   }
 

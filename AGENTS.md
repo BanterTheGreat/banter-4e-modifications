@@ -34,3 +34,7 @@ Foundry VTT v13 module for DnD4e homebrew automation: simplified conditions and 
 - Split an event workflow at meaningful transitions—capture, evaluate, create, claim, resolve, and finalize—so each method has one orchestration responsibility. Keep calculations, rendering, and compatibility reads in focused helpers when they represent a named concept.
 - Avoid shallow pass-through helpers. A method earns its name when it hides a decision, a Foundry-system quirk, a state transition, or repeated implementation detail from its caller.
 - When data crosses a hook, socket, or persisted flag seam, document its shape and authority in JSDoc. Prefer names such as `attackContext`, `defenseAttempt`, and `promptState` over generic `data` or `context` when the role is known.
+
+## Debugging
+
+- Heavily prefer adding temporary debug logging, since you can't directly control foundry.

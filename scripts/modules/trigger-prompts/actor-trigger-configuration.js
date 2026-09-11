@@ -26,9 +26,12 @@ export class ActorTriggerConfiguration {
    * @param {object} [context={}]
    *   Event data supplied by the trigger, including optional distance data.
    * @returns {Array<object>}
-   *   Eligible assignments with their resolved power in the `item` property.
+   *   Eligible power assignments, or a no-power sentinel for actor-level prompts.
    */
   static eligibleAssignmentsFor(actor, trigger, triggerEvent = {}) {
+    if (trigger.actorLevel) {
+      return ActorTriggerConfiguration.isActorLevelPromptEnabled(actor, trigger) ? [{}] : [];
+    }
     if (trigger.id === TRIGGER_ID.OPPORTUNITY_ATTACK) {
       if (!ActorTriggerConfiguration.isOpportunityAttackPromptEnabled(actor)) {
         return [];
@@ -68,6 +71,17 @@ export class ActorTriggerConfiguration {
   }
 
   /**
+   * Determines whether this actor should receive a no-power reminder prompt.
+   *
+   * @param {Actor} actor
+   * @param {object} trigger
+   * @returns {boolean}
+   */
+  static isActorLevelPromptEnabled(actor, trigger) {
+    return ActorTriggerConfiguration.#readConfiguration(actor).actorLevelTriggers[trigger.id]?.enabled === true;
+  }
+
+  /**
    * Opens the actor-level trigger-prompt configuration dialog.
    *
    * This dialog only controls automatic opportunity prompts and summarizes
@@ -83,6 +97,8 @@ export class ActorTriggerConfiguration {
     const opportunitySummary = opportunityPowers.length
       ? `<ul>${opportunityPowers.map(item => `<li>${foundry.utils.escapeHTML(item.name)}</li>`).join("")}</ul>`
       : `<p class="hint">No powers are marked as opportunity attacks.</p>`;
+    const actorLevelRows = TRIGGERS.filter(trigger => trigger.actorLevel)
+      .map(trigger => ActorTriggerConfiguration.#renderActorLevelRow(actor, trigger)).join("");
     const summary = TRIGGERS.filter(trigger => trigger.id !== TRIGGER_ID.OPPORTUNITY_ATTACK)
       .map(trigger => ActorTriggerConfiguration.#renderTriggerSummary(actor, trigger)).filter(Boolean).join("");
     const content = `<form class="${TRIGGER_PROMPT_UI.CONFIG_CLASS}">
@@ -90,6 +106,7 @@ export class ActorTriggerConfiguration {
         <div class="trigger-prompts-config__details"><strong>Opportunity Attacks</strong><p class="hint">Offer every power marked by DnD4e as an opportunity attack, plus Basic Attacks for NPCs.</p>${opportunitySummary}</div>
         <label><input type="checkbox" name="opportunityAttack.enabled" ${checked}> Enabled</label>
       </section>
+      ${actorLevelRows}
       <h3>Power trigger assignments</h3>
       <div class="trigger-prompts-config__summary">${summary || `<p class="hint">No powers have trigger assignments.</p>`}</div>
     </form>`;
@@ -112,7 +129,7 @@ export class ActorTriggerConfiguration {
     }
     const assignments = new Map(ActorTriggerConfiguration.configuredAssignments(actor)
       .filter(assignment => assignment.itemId === item.id).map(assignment => [assignment.triggerId, assignment]));
-    const rows = TRIGGERS.filter(trigger => trigger.id !== TRIGGER_ID.OPPORTUNITY_ATTACK)
+    const rows = TRIGGERS.filter(trigger => trigger.id !== TRIGGER_ID.OPPORTUNITY_ATTACK && !trigger.actorLevel)
       .map(trigger => ActorTriggerConfiguration.#renderAssignmentRow(trigger, assignments.get(trigger.id))).join("");
     const triggerText = ActorTriggerConfiguration.getPowerTriggerText(item);
     const reference = triggerText
@@ -203,7 +220,17 @@ export class ActorTriggerConfiguration {
    */
   static async #saveActorOptions(actor, form) {
     const configuration = ActorTriggerConfiguration.#readConfiguration(actor);
-    await actor.setFlag(MODULE_NAME, TRIGGER_CONFIGURATION_FLAG, { ...configuration, opportunityAttack: { enabled: new FormData(form).has("opportunityAttack.enabled") } });
+    const data = new FormData(form);
+    const actorLevelTriggers = {
+      ...configuration.actorLevelTriggers,
+      ...Object.fromEntries(TRIGGERS.filter(trigger => trigger.actorLevel)
+        .map(trigger => [trigger.id, { enabled: data.has(`${trigger.id}.enabled`) }])),
+    };
+    await actor.setFlag(MODULE_NAME, TRIGGER_CONFIGURATION_FLAG, {
+      ...configuration,
+      opportunityAttack: { enabled: data.has("opportunityAttack.enabled") },
+      actorLevelTriggers,
+    });
   }
 
   /**
@@ -221,7 +248,7 @@ export class ActorTriggerConfiguration {
     const existing = new Map(configuration.assignments.filter(assignment => assignment.itemId === item.id).map(assignment => [assignment.triggerId, assignment]));
     const data = new FormData(form);
     const itemAssignments = TRIGGERS
-      .filter(trigger => trigger.id !== TRIGGER_ID.OPPORTUNITY_ATTACK && data.has(`${trigger.id}.enabled`))
+      .filter(trigger => trigger.id !== TRIGGER_ID.OPPORTUNITY_ATTACK && !trigger.actorLevel && data.has(`${trigger.id}.enabled`))
       .map(trigger => {
         const range = data.get(`${trigger.id}.rangeSquares`);
         const parsedRange = Number(range);
@@ -253,6 +280,21 @@ export class ActorTriggerConfiguration {
   }
 
   /**
+   * Renders one actor-level, no-power trigger option in the actor dialog.
+   *
+   * @param {Actor} actor
+   * @param {object} trigger
+   * @returns {string}
+   */
+  static #renderActorLevelRow(actor, trigger) {
+    const checked = ActorTriggerConfiguration.isActorLevelPromptEnabled(actor, trigger) ? "checked" : "";
+    return `<section class="trigger-prompts-config__row">
+      <div class="trigger-prompts-config__details"><strong>${foundry.utils.escapeHTML(trigger.label)}</strong><p class="hint">${foundry.utils.escapeHTML(trigger.description)}</p></div>
+      <label><input type="checkbox" name="${trigger.id}.enabled" ${checked}> Enabled</label>
+    </section>`;
+  }
+
+  /**
    * Identifies powers DnD4e permits as opportunity attacks for this actor.
    *
    * Legacy DnD4e represents NPC opportunity attacks as Basic Attacks, so NPC
@@ -278,15 +320,19 @@ export class ActorTriggerConfiguration {
    * configuration save persists the current format.
    *
    * @param {Actor} actor
-   * @returns {{opportunityAttack: {enabled: boolean}, assignments: Array<object>}}
+   * @returns {{opportunityAttack: {enabled: boolean}, actorLevelTriggers: object, assignments: Array<object>}}
    */
   static #readConfiguration(actor) {
     const stored = actor.getFlag(MODULE_NAME, TRIGGER_CONFIGURATION_FLAG) ?? {};
     if (Array.isArray(stored.assignments)) {
-      return { opportunityAttack: { enabled: stored.opportunityAttack?.enabled !== false }, assignments: stored.assignments };
+      return {
+        opportunityAttack: { enabled: stored.opportunityAttack?.enabled !== false },
+        actorLevelTriggers: stored.actorLevelTriggers ?? {},
+        assignments: stored.assignments,
+      };
     }
     const assignments = [];
-    for (const trigger of TRIGGERS.filter(candidate => candidate.id !== TRIGGER_ID.OPPORTUNITY_ATTACK)) {
+    for (const trigger of TRIGGERS.filter(candidate => candidate.id !== TRIGGER_ID.OPPORTUNITY_ATTACK && !candidate.actorLevel)) {
       const entry = stored[trigger.id];
       if (!entry?.enabled) {
         continue;
@@ -306,6 +352,6 @@ export class ActorTriggerConfiguration {
         assignments.push({ id: foundry.utils.randomID(), itemId: item.id, triggerId: trigger.id, parameters: trigger.defaultRangeSquares === undefined ? {} : { rangeSquares: entry.rangeSquares ?? trigger.defaultRangeSquares } });
       }
     }
-    return { opportunityAttack: { enabled: stored[TRIGGER_ID.OPPORTUNITY_ATTACK]?.enabled !== false }, assignments };
+    return { opportunityAttack: { enabled: stored[TRIGGER_ID.OPPORTUNITY_ATTACK]?.enabled !== false }, actorLevelTriggers: {}, assignments };
   }
 }

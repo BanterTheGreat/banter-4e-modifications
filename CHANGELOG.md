@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.1 - Workflow Naming and Module Clarity
+
+- Refactored Trigger Prompts and Mark Ownership around explicit gameplay state transitions, clearer Foundry hook names, and named persistence and SocketLib operations.
+- Preserved existing gameplay behavior while improving JSDoc coverage and the locality of workflow, renderer, configuration, and cleanup responsibilities.
+- Added an actor-level reminder when a creature marked by that actor hits an ally; the private prompt deliberately offers only Ignore, with no attached power.
+- Restored hit-trigger evaluation for attacks resolved through Player Defense, including normal and critical defended hits.
+
 ## 1.3 — Per-Power Trigger Assignments
 
 Moved configurable trigger assignments into actor-owned records edited from each embedded power sheet, allowing several powers to use the same trigger with independent parameters such as range. The actor dialog now controls Opportunity Attacks and summarizes assigned power triggers, qualifying prompts offer every matching power, and deleting a power cleans up its assignments while stale references are ignored defensively.

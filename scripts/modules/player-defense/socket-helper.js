@@ -98,16 +98,14 @@ export class SocketHelper {
             await message.update({ content, flags: { ...message.flags, playerDefense: { ...defense, targets, damageRolled } } });
             Logger.info("Resolved defense target", { messageId, targetId, outcome });
 
-            if (outcome === "miss") {
-                await game.TriggerPrompts?.handleActiveDefenseMiss({
-                    attackerActorId: defense.attackerId,
-                    attackerTokenId: defense.attackerTokenId,
-                    sceneId: defense.sceneId,
-                    targetActorId: target.actorId,
-                    targetTokenId: target.tokenId,
-                    targetSceneId: target.sceneId,
-                });
-            }
+            await game.TriggerPrompts?.handleActiveDefenseOutcome({
+                attackerActorId: defense.attackerId,
+                attackerTokenId: defense.attackerTokenId,
+                sceneId: defense.sceneId,
+                targetActorId: target.actorId,
+                targetTokenId: target.tokenId,
+                targetSceneId: target.sceneId,
+            }, outcome === "miss" ? "miss" : "hit");
 
             for (const group of damageGroups) {
                 await SocketHelper.#rollDefenseDamage(defense, group, messageId);

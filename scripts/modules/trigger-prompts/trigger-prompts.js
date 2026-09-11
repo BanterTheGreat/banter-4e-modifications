@@ -154,13 +154,14 @@ export class TriggerPrompts {
   }
 
   /**
-   * Receives a Player Defense miss after its GM-authoritative resolution.
+   * Receives a Player Defense outcome after its GM-authoritative resolution.
    *
    * @param {object} context
+   * @param {"hit"|"miss"} outcome
    * @returns {Promise<void>}
    */
-  async handleActiveDefenseMiss(attackContext) {
-    await this.dispatcher.evaluateActiveDefenseMiss(attackContext);
+  async handleActiveDefenseOutcome(attackContext, outcome) {
+    await this.dispatcher.evaluateActiveDefenseOutcome(attackContext, outcome);
   }
 
   /**
