@@ -22,7 +22,7 @@ export class CombatTriggerDispatcher {
    * Evaluates every configured attack-result trigger for each attacked token.
    *
    * @param {object} context
-   *   Captured attacker, target, defense, total, and natural-d20 data.
+   *   Captured attacker, target, defense, defense-type, total, and natural-d20 data.
    * @returns {Promise<void>}
    */
   async evaluateCapturedAttack(attackContext) {
@@ -42,7 +42,7 @@ export class CombatTriggerDispatcher {
       if (!outcome) {
         continue;
       }
-      await this.#evaluateAttackResultTriggers({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome, attacker, target });
+      await this.#evaluateAttackResultTriggers({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome, defenseType: targetData.defenseType, attacker, target });
     }
   }
 
@@ -127,7 +127,7 @@ export class CombatTriggerDispatcher {
     const attacker = this.#findCombatantByToken(activeDefenseContext.sceneId, activeDefenseContext.attackerTokenId);
     const target = this.#findCombatantByToken(activeDefenseContext.targetSceneId, activeDefenseContext.targetTokenId);
     if (attacker && target) {
-      await this.#evaluateAttackResultTriggers({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome, attacker, target });
+      await this.#evaluateAttackResultTriggers({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome, defenseType: activeDefenseContext.defenseType, attacker, target });
     }
   }
 

@@ -6,6 +6,8 @@
 - Preserved existing gameplay behavior while improving JSDoc coverage and the locality of workflow, renderer, configuration, and cleanup responsibilities.
 - Added an actor-level reminder when a creature marked by that actor hits an ally; the private prompt deliberately offers only Ignore, with no attached power.
 - Restored hit-trigger evaluation for attacks resolved through Player Defense, including normal and critical defended hits.
+- Added configurable prompts for missing an enemy and for an enemy missing AC or Reflex, plus a configurable 10-square default range for enemy-hit prompts. Both attack-result additions support Player Defense outcomes.
+- Prevented Player Defense's intercepted attack message from producing duplicate miss prompts by clearing its captured attack context before a later roll can consume it.
 
 ## 1.3 — Per-Power Trigger Assignments
 

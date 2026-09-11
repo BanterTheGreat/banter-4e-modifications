@@ -11,7 +11,8 @@ export class EnemyHitSelfTrigger extends CombatTrigger {
     super({
       id: TRIGGER_ID.ENEMY_HITS_YOU,
       label: "Enemy hits you",
-      description: "An enemy hits this actor.",
+      defaultRangeSquares: 10,
+      description: "An enemy within the configured range hits this actor.",
     });
   }
 
@@ -20,7 +21,7 @@ export class EnemyHitSelfTrigger extends CombatTrigger {
    *
    * @param {object} event
    * @param {object} services
-   * @returns {Array<{actor: Actor, sourceName: string, detail: string}>}
+   * @returns {Array<{actor: Actor, sourceName: string, detail: string, distanceSquares: number}>}
    */
   evaluate(event, services) {
     if (event.type !== TRIGGER_EVENT_TYPE.ATTACK_RESULT || event.outcome !== "hit") {
@@ -37,6 +38,7 @@ export class EnemyHitSelfTrigger extends CombatTrigger {
       actor: target.actor,
       sourceName: attacker.name,
       detail: `${attacker.name} hit ${target.name}.`,
+      distanceSquares: services.distanceSquares(attacker, target),
     }];
   }
 }

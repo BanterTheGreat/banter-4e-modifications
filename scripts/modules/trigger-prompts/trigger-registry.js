@@ -2,6 +2,8 @@ import { OpportunityAttackTrigger } from "./triggers/opportunity-attack-trigger.
 import { EnemyMissTrigger } from "./triggers/enemy-miss-trigger.js";
 import { EnemyMissSelfTrigger } from "./triggers/enemy-miss-self-trigger.js";
 import { EnemyHitSelfTrigger } from "./triggers/enemy-hit-self-trigger.js";
+import { AttackAgainstAcOrReflexMissesYouTrigger } from "./triggers/attack-against-ac-or-reflex-misses-you-trigger.js";
+import { YouMissTrigger } from "./triggers/you-miss-trigger.js";
 import { MarkedEnemyHitsAllyTrigger } from "./triggers/marked-enemy-hits-ally-trigger.js";
 import { MarkedCreatureBloodiedTrigger } from "./triggers/marked-creature-bloodied-trigger.js";
 import { MarkedCreatureMovesAdjacentTrigger } from "./triggers/marked-creature-moves-adjacent-trigger.js";
@@ -19,6 +21,8 @@ export const TRIGGERS = [
   new EnemyMissSelfTrigger(),
   new EnemyMissTrigger(),
   new EnemyHitSelfTrigger(),
+  new AttackAgainstAcOrReflexMissesYouTrigger(),
+  new YouMissTrigger(),
   new MarkedEnemyHitsAllyTrigger(),
   new MarkedCreatureBloodiedTrigger(),
   new MarkedCreatureMovesAdjacentTrigger(),

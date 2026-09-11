@@ -8,7 +8,6 @@ export class PlayerDefense {
   static REVERSED_ROLL_OFFSET = 2;
   static CRITICAL_FAILURE = 1;
   static CRITICAL_SUCCESS = 20;
-
   lastAttack = { item: "", targets: [], attacker: null };
 
     /**
@@ -240,6 +239,7 @@ export class PlayerDefense {
     const rollDC = PlayerDefense.#getDefenseDC(totalModifier);
     const { targets, item, attacker } = attack;
     game.PlayerDefense.lastAttack = null;
+    game.TriggerPrompts?.clearPendingAttackContext();
     const { attack: attackData } = PlayerDefense.#getPowerDamageData(item);
     const defenseTargets = PlayerDefense.#buildDefenseTargets(targets, rollDC, attacker, attackData.def?.toUpperCase() ?? "?", item);
     Logger.info("Intercepting NPC attack", { messageId: message.id, attackerId: attacker.id, itemId: item.id, targetIds: defenseTargets.map(target => target.actorId), rollFormula, totalModifier, rollDC });

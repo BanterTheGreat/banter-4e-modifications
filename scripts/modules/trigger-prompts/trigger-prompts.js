@@ -46,6 +46,7 @@ export class TriggerPrompts {
         tokenId: token.id,
         sceneId: token.document?.parent?.id ?? token.scene?.id ?? canvas.scene?.id ?? null,
         defense: target.targDefValArray?.[index] ?? null,
+        defenseType: target.targDefArray?.[index] ?? null,
         missed: target.targetMissed?.some(missedToken => missedToken.id === token.id) ?? false,
       })),
     };
@@ -162,6 +163,11 @@ export class TriggerPrompts {
    */
   async handleActiveDefenseOutcome(attackContext, outcome) {
     await this.dispatcher.evaluateActiveDefenseOutcome(attackContext, outcome);
+  }
+
+  /** Clears a captured attack that Player Defense has replaced before creation. */
+  clearPendingAttackContext() {
+    this.pendingAttackContext = null;
   }
 
   /**

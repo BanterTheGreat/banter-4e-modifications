@@ -105,6 +105,7 @@ export class SocketHelper {
                 targetActorId: target.actorId,
                 targetTokenId: target.tokenId,
                 targetSceneId: target.sceneId,
+                defenseType: target.defenseStat,
             }, outcome === "miss" ? "miss" : "hit");
 
             for (const group of damageGroups) {
