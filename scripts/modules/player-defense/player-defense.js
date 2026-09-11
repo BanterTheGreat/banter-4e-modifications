@@ -1,4 +1,5 @@
 import { Logger } from "../../shared/logger.js";
+import { createDefenseDialogPayload } from "./player-defense-workflow.js";
 
 /**
  * Handles NPC attack interception and the player-defense dialog workflow.
@@ -324,10 +325,11 @@ export class PlayerDefense {
      * @param {object} socket
      */
   static #showDefenseDialog(message, target, socket) {
-        new Dialog({
-            title: message.flags.playerDefense.attackName,
-            content: `<p><b>${target.attackerName}</b> is targeting your <b>${target.defenseStat}</b> (+${target.defenseMod})!</p>`,
-            buttons: { defend: { label: `Defend Yourself! (DC ${target.rollDC})`, callback: () => PlayerDefense.#defend(message, target, socket) } },
+    const dialog = createDefenseDialogPayload({ attackName: message.flags.playerDefense.attackName, ...target });
+    new Dialog({
+            title: dialog.title,
+            content: dialog.content,
+            buttons: { defend: { label: dialog.defendLabel, callback: () => PlayerDefense.#defend(message, target, socket) } },
       default: "defend",
     }).render(true);
   }

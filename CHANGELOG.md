@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4 - Automated Test Coverage
+
+- Added automated coverage for Foundry lifecycle registration, DnD4e customizations, Player Defense resolution, Trigger Prompt dispatch, and Mark Ownership persistence.
+- Added CI-ready test and coverage commands with minimum line and branch coverage thresholds.
+
 ## 1.3.1 - Workflow Naming and Module Clarity
 
 - Refactored Trigger Prompts and Mark Ownership around explicit gameplay state transitions, clearer Foundry hook names, and named persistence and SocketLib operations.

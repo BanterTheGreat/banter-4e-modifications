@@ -1,5 +1,6 @@
 import { Logger } from "../../shared/logger.js";
 import { TRIGGER_PROMPT_FLAG } from "../trigger-prompts/constants.js";
+import { toTriggerAttackOutcome } from "./player-defense-outcome.js";
 
 // EVERYTHING HERE SHOULD ONLY BE CALLED ON THE GM'S INSTANCE USING SOCKETLIB.
 /**
@@ -106,7 +107,7 @@ export class SocketHelper {
                 targetTokenId: target.tokenId,
                 targetSceneId: target.sceneId,
                 defenseType: target.defenseStat,
-            }, outcome === "miss" ? "miss" : "hit");
+            }, toTriggerAttackOutcome(outcome));
 
             for (const group of damageGroups) {
                 await SocketHelper.#rollDefenseDamage(defense, group, messageId);

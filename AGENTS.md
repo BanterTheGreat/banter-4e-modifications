@@ -22,7 +22,8 @@ Foundry VTT v13 module for DnD4e homebrew automation: simplified conditions and 
 - Use ES modules, Foundry hooks, and the DnD4e system API; preserve v12 compatibility unless intentionally upgrading it.
 - Keep the active-defense flow GM-authoritative for chat-message edits via SocketLib, and preserve ownership checks before a player rolls.
 - Use braced, multiline `if` blocks. Document methods with JSDoc, using multiline JSDoc blocks whenever practical.
-- Changes that affect initial hooks or the manifest should be tested by reloading Foundry and checking the browser console. There is no automated test or build setup.
+- Changes that affect initial hooks or the manifest should be tested by reloading Foundry and checking the browser console.
+- After every substantial change, run `npm test` and resolve any failures before handoff.
 - Changelog entries are release summaries, not per-change notes. Since the last version, list new features and changes to existing behavior in short, concise bullets that support future regression review.
 - Do not enable or alter the commented-out BEACON hooks without explicitly intending to ship that feature.
 - Track project TODOs as appropriately labeled GitHub Issues rather than local TODO files.

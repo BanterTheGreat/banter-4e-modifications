@@ -3,6 +3,7 @@ import { TRIGGER_PROMPT_UI, TRIGGER_SOCKET_ACTION } from "./constants.js";
 import { ActorTriggerConfiguration } from "./actor-trigger-configuration.js";
 import { CombatTriggerDispatcher } from "./combat-trigger-dispatcher.js";
 import { TriggerPromptChat } from "./trigger-prompt-chat.js";
+import { AttackResultCapture } from "./attack-result-capture.js";
 
 /**
  * Foundry hook adapter for the trigger-prompt submodule.
@@ -19,7 +20,7 @@ export class TriggerPrompts {
    */
   constructor(socket) {
     this.socket = socket;
-    this.pendingAttackContext = null;
+    this.attackCapture = new AttackResultCapture();
     this.promptChat = new TriggerPromptChat(socket);
     this.dispatcher = new CombatTriggerDispatcher(this.promptChat);
   }
@@ -36,20 +37,7 @@ export class TriggerPrompts {
     if (!game.TriggerPrompts) {
       return;
     }
-    game.TriggerPrompts.pendingAttackContext = {
-      itemName: item.name,
-      attackerActorId: speaker.actor,
-      attackerTokenId: speaker.token ?? null,
-      sceneId: canvas.scene?.id ?? null,
-      targets: (target.targets ?? []).map((token, index) => ({
-        actorId: token.actor?.id ?? null,
-        tokenId: token.id,
-        sceneId: token.document?.parent?.id ?? token.scene?.id ?? canvas.scene?.id ?? null,
-        defense: target.targDefValArray?.[index] ?? null,
-        defenseType: target.targDefArray?.[index] ?? null,
-        missed: target.targetMissed?.some(missedToken => missedToken.id === token.id) ?? false,
-      })),
-    };
+    game.TriggerPrompts.attackCapture.capture({ item, target, speaker, sceneId: canvas.scene?.id ?? null });
   }
 
   /**
@@ -59,13 +47,11 @@ export class TriggerPrompts {
    * @param {object} socket
    */
   static onPreCreateAttackMessage(message, socket) {
-    const attack = game.TriggerPrompts?.pendingAttackContext;
-    if (!attack || !message.flavor?.includes(attack.itemName) || !message.rolls?.[0]) {
+    const attack = game.TriggerPrompts?.attackCapture.consume(message);
+    if (!attack) {
       return;
     }
-    game.TriggerPrompts.pendingAttackContext = null;
-    const roll = message.rolls[0];
-    socket.executeAsGM(TRIGGER_SOCKET_ACTION.EVALUATE_ATTACK, { ...attack, total: roll.total, natural: TriggerPrompts.#getNaturalD20Result(roll) })
+    socket.executeAsGM(TRIGGER_SOCKET_ACTION.EVALUATE_ATTACK, attack)
       .catch(error => Logger.error("Failed to evaluate trigger attack", { error: error.message }));
   }
 
@@ -167,17 +153,6 @@ export class TriggerPrompts {
 
   /** Clears a captured attack that Player Defense has replaced before creation. */
   clearPendingAttackContext() {
-    this.pendingAttackContext = null;
-  }
-
-  /**
-   * Extracts the first active d20 face from a Foundry roll.
-   *
-   * @param {Roll} roll
-   * @returns {number|null}
-   */
-  static #getNaturalD20Result(roll) {
-    const die = roll.dice?.find(candidate => candidate.faces === 20);
-    return die?.results?.find(result => result.active !== false)?.result ?? null;
+    this.attackCapture.discard();
   }
 }
