@@ -137,6 +137,7 @@ export class PlayerDefense {
      */
   static #createDefenseMessage(attacker, item, targets, attackContext) {
     const { attack, hit, miss } = PlayerDefense.#getPowerDamageData(item);
+    const system = item.system ?? item.data?.data ?? {};
     const hasDamage = Boolean(item.hasDamage || hit.isDamage || hit.formula?.trim());
     const hasMissDamage = Boolean(miss.halfDamage || miss.formula?.trim());
     Logger.info("[DEBUG-pd-damage] Prepared power damage data", {
@@ -159,6 +160,7 @@ export class PlayerDefense {
           sceneId: attackContext.sceneId,
           itemId: item.id ?? item._id,
           itemName: item.name,
+          attackRange: typeof item.rangeType === "string" ? item.rangeType : typeof system.rangeType === "string" ? system.rangeType : typeof attack.range === "string" ? attack.range : attack.range?.value ?? null,
           hasDamage,
           hasMissDamage,
           missDamage: {

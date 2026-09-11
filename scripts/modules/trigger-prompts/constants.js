@@ -13,6 +13,8 @@ export const TRIGGER_ID = Object.freeze({
   YOU_MISS: "you-miss",
   MARKED_ENEMY_HITS_ALLY: "marked-enemy-hits-ally",
   MARKED_CREATURE_BLOODIED: "marked-creature-bloodied",
+  YOU_BECOME_BLOODIED: "you-become-bloodied",
+  YOU_ARE_HIT_BY_MELEE_ATTACK: "you-are-hit-by-melee-attack",
   MARKED_CREATURE_SHIFTS_ADJACENT: "marked-creature-moves-adjacent",
 });
 

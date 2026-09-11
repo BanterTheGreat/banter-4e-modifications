@@ -107,6 +107,7 @@ export class SocketHelper {
                 targetTokenId: target.tokenId,
                 targetSceneId: target.sceneId,
                 defenseType: target.defenseStat,
+                attackRange: defense.attackRange,
             }, toTriggerAttackOutcome(outcome));
 
             for (const group of damageGroups) {

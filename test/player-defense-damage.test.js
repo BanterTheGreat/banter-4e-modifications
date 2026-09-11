@@ -4,6 +4,7 @@ import { SocketHelper } from "../scripts/modules/player-defense/socket-helper.js
 
 test("a resolved normal defense hit rolls the attacking power's damage once", async () => {
   const damageCalls = [];
+  const activeDefenseOutcomes = [];
   const target = { id: "rogal-0", actorId: "rogal", tokenId: "rogal-token", sceneId: "scene", defenseStat: "AC", resolved: false };
   const defense = {
     attackerId: "badger",
@@ -11,6 +12,7 @@ test("a resolved normal defense hit rolls the attacking power's damage once", as
     sceneId: "scene",
     itemId: "bite",
     itemName: "Bite",
+    attackRange: "weapon",
     hasDamage: true,
     hasMissDamage: false,
     damageRolled: { normal: false, critical: false, miss: false },
@@ -32,7 +34,7 @@ test("a resolved normal defense hit rolls the attacking power's damage once", as
     messages: new Map([[message.id, message]]),
     actors: new Map([[attacker.id, attacker]]),
     settings: { settings: new Map(), get: () => false },
-    TriggerPrompts: { handleActiveDefenseOutcome: async () => {} },
+    TriggerPrompts: { handleActiveDefenseOutcome: async (context, outcome) => activeDefenseOutcomes.push({ context, outcome }) },
     SocketHelper: new SocketHelper(),
   };
 
@@ -41,4 +43,10 @@ test("a resolved normal defense hit rolls the attacking power's damage once", as
   assert.equal(resolved, true);
   assert.equal(target.resolved, true);
   assert.deepEqual(damageCalls, [{ fastForward: true }]);
+  assert.deepEqual(activeDefenseOutcomes, [{
+    context: {
+      attackerActorId: "badger", attackerTokenId: "badger-token", sceneId: "scene", targetActorId: "rogal", targetTokenId: "rogal-token", targetSceneId: "scene", defenseType: "AC", attackRange: "weapon",
+    },
+    outcome: "hit",
+  }]);
 });

@@ -6,6 +6,8 @@ import { AttackAgainstAcOrReflexMissesYouTrigger } from "./triggers/attack-again
 import { YouMissTrigger } from "./triggers/you-miss-trigger.js";
 import { MarkedEnemyHitsAllyTrigger } from "./triggers/marked-enemy-hits-ally-trigger.js";
 import { MarkedCreatureBloodiedTrigger } from "./triggers/marked-creature-bloodied-trigger.js";
+import { YouBecomeBloodiedTrigger } from "./triggers/you-become-bloodied-trigger.js";
+import { MeleeAttackHitsYouTrigger } from "./triggers/melee-attack-hits-you-trigger.js";
 import { MarkedCreatureMovesAdjacentTrigger } from "./triggers/marked-creature-moves-adjacent-trigger.js";
 
 /**
@@ -25,6 +27,8 @@ export const TRIGGERS = [
   new YouMissTrigger(),
   new MarkedEnemyHitsAllyTrigger(),
   new MarkedCreatureBloodiedTrigger(),
+  new YouBecomeBloodiedTrigger(),
+  new MeleeAttackHitsYouTrigger(),
   new MarkedCreatureMovesAdjacentTrigger(),
 ];
 

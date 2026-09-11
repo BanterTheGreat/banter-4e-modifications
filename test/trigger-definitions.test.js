@@ -89,3 +89,23 @@ test("mark triggers identify the mark owner for a hit, bloodied transition, and 
   assert.deepEqual(bloodiedPrompts.map(prompt => prompt.actor.id), ["target-actor"]);
   assert.deepEqual(movementPrompts.map(prompt => prompt.actor.id), ["target-actor"]);
 });
+
+test("becoming bloodied prompts the affected actor", () => {
+  const prompts = triggerById(TRIGGER_ID.YOU_BECOME_BLOODIED).evaluate({
+    type: TRIGGER_EVENT_TYPE.BLOODIED,
+    sceneId,
+    tokenId: target.id,
+  }, services);
+
+  assert.deepEqual(prompts.map(prompt => prompt.actor.id), ["target-actor"]);
+  assert.match(prompts[0].detail, /Rogal.*became bloodied/i);
+});
+
+test("a hostile hit with Weapon or Melee X range prompts the target", () => {
+  const trigger = triggerById(TRIGGER_ID.YOU_ARE_HIT_BY_MELEE_ATTACK);
+
+  for (const attackRange of ["weapon", "melee", "Melee 1"]) {
+    assert.deepEqual(trigger.evaluate({ ...attackEvent("hit"), attackRange }, services).map(prompt => prompt.actor.id), ["target-actor"]);
+  }
+  assert.deepEqual(trigger.evaluate({ ...attackEvent("hit"), attackRange: "Ranged 10" }, services), []);
+});

@@ -1,7 +1,8 @@
 # Changelog
 
-## 1.4 - Automated Test Coverage
+## 1.4 - Trigger Prompts and Test Coverage
 
+- Added configurable Trigger Prompts for becoming bloodied and for being hit by an enemy Weapon or Melee X attack, including Player Defense outcomes.
 - Added automated coverage for Foundry lifecycle registration, DnD4e customizations, Player Defense resolution, Trigger Prompt dispatch, and Mark Ownership persistence.
 - Added CI-ready test and coverage commands with minimum line and branch coverage thresholds.
 

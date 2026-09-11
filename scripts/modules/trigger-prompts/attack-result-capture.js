@@ -17,6 +17,7 @@ export class AttackResultCapture {
   capture({ item, target, speaker, sceneId }) {
     this.pendingAttackContext = {
       itemName: item.name,
+      attackRange: AttackResultCapture.#getAttackRange(item),
       attackerActorId: speaker.actor,
       attackerTokenId: speaker.token ?? null,
       sceneId,
@@ -62,5 +63,18 @@ export class AttackResultCapture {
   static #getNaturalD20Result(roll) {
     const die = roll.dice?.find(candidate => candidate.faces === 20);
     return die?.results?.find(result => result.active !== false)?.result ?? null;
+  }
+
+  /**
+   * Reads the legacy DnD4e attack-range field from either supported item shape.
+   *
+   * @param {Item} item
+   * @returns {string|null}
+   */
+  static #getAttackRange(item) {
+    const system = item.system ?? item.data?.data ?? {};
+    const attack = system.attack ?? {};
+    const range = item.rangeType ?? system.rangeType ?? attack.range;
+    return typeof range === "string" ? range : typeof range?.value === "string" ? range.value : null;
   }
 }

@@ -42,7 +42,7 @@ export class CombatTriggerDispatcher {
       if (!outcome) {
         continue;
       }
-      await this.#evaluateAttackResultTriggers({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome, defenseType: targetData.defenseType, attacker, target });
+      await this.#evaluateAttackResultTriggers({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome, defenseType: targetData.defenseType, attackRange: attackContext.attackRange, attacker, target });
     }
   }
 
@@ -103,6 +103,12 @@ export class CombatTriggerDispatcher {
     }
     for (const combatant of game.combat.combatants) {
       if (combatant.actor?.uuid === actor.uuid) {
+        await this.#evaluateTrigger(TRIGGER_ID.YOU_BECOME_BLOODIED, {
+          type: TRIGGER_EVENT_TYPE.BLOODIED,
+          combatant,
+          sceneId: combatant.sceneId,
+          tokenId: combatant.tokenId,
+        });
         await this.#evaluateTrigger(TRIGGER_ID.MARKED_CREATURE_BLOODIED, {
           type: TRIGGER_EVENT_TYPE.BLOODIED,
           combatant,
@@ -127,7 +133,7 @@ export class CombatTriggerDispatcher {
     const attacker = this.#findCombatantByToken(activeDefenseContext.sceneId, activeDefenseContext.attackerTokenId);
     const target = this.#findCombatantByToken(activeDefenseContext.targetSceneId, activeDefenseContext.targetTokenId);
     if (attacker && target) {
-      await this.#evaluateAttackResultTriggers({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome, defenseType: activeDefenseContext.defenseType, attacker, target });
+      await this.#evaluateAttackResultTriggers({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome, defenseType: activeDefenseContext.defenseType, attackRange: activeDefenseContext.attackRange, attacker, target });
     }
   }
 

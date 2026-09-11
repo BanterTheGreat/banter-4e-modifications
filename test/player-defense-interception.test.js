@@ -20,7 +20,7 @@ test("Player Defense replaces a captured NPC attack with a defense card", () => 
     PlayerDefense: new PlayerDefense(),
   };
 
-  const item = { id: "bite", name: "Bite", system: { attack: { def: "ac" }, hit: {}, miss: {} }, hasDamage: false };
+  const item = { id: "bite", name: "Bite", rangeType: "weapon", system: { attack: { def: "ac" }, hit: {}, miss: {} }, hasDamage: false };
   PlayerDefense.OnRollAttack(item, { targets: [targetToken], targDefValArray: [26] }, { actor: attacker.id, token: "badger-token" });
   const intercepted = PlayerDefense.OnPowerChatMessage({ flavor: "Attack: Bite", rolls: [{ formula: "1d20 + 16" }] });
 
@@ -30,5 +30,6 @@ test("Player Defense replaces a captured NPC attack with a defense card", () => 
   assert.equal(createdMessages[0].flags.playerDefense.attackName, "Bite");
   assert.equal(createdMessages[0].flags.playerDefense.targets[0].defenseMod, 16);
   assert.equal(createdMessages[0].flags.playerDefense.targets[0].rollDC, 28);
+  assert.equal(createdMessages[0].flags.playerDefense.attackRange, "weapon");
   assert.match(createdMessages[0].content, /Rogal \(\+16\) defends/);
 });
