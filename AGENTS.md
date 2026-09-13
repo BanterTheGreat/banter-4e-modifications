@@ -1,6 +1,6 @@
 # Banter 4e Modifications
 
-Foundry VTT v13 module for DnD4e homebrew automation: simplified conditions and skills, optional NPC-vs-player active defense, and BEACON-inspired backgrounds/titles. It targets the DnD4e system's legacy [`0.7.14` source](https://github.com/EndlesNights/dnd4eBeta/tree/0.7.14); do not assume current upstream APIs or behavior apply without checking this tag.
+Foundry VTT v14 module for DnD4e homebrew automation: simplified conditions and skills, optional NPC-vs-player active defense, and BEACON-inspired backgrounds/titles. It targets the DnD4e system's [`0.9.3` source](https://github.com/EndlesNights/dnd4eBeta/tree/0.9.3); do not assume current upstream APIs or behavior apply without checking this tag.
 
 ## Layout
 
