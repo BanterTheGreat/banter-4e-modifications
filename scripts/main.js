@@ -60,6 +60,7 @@ Hooks.once("socketlib.ready", () => {
   socket.register("attemptDefenseDialog", SocketHelper.attemptDefenseDialog);
   socket.register("resolveDefenseTarget", SocketHelper.resolveDefenseTarget);
   socket.register(TRIGGER_SOCKET_ACTION.EVALUATE_ATTACK, TriggerPrompts.evaluateCapturedAttackFromSocket);
+  socket.register(TRIGGER_SOCKET_ACTION.EVALUATE_SAVING_THROW, TriggerPrompts.evaluateSavingThrowFromSocket);
   socket.register(TRIGGER_SOCKET_ACTION.CLAIM_PROMPT, SocketHelper.claimTriggerPrompt);
   socket.register(TRIGGER_SOCKET_ACTION.EXPIRE_PROMPT, SocketHelper.expireTriggerPrompt);
   socket.register("setMarkOwner", MarkOwnershipStore.assignOwnersToMarks);
@@ -121,7 +122,8 @@ Hooks.on("i18nInit", () => {
 Hooks.on("i18nInit", () => {
   if (game.settings.get(MODULE_NAME, ENABLE_TRIGGER_PROMPTS)) {
     Hooks.on("dnd4e.rollAttack", TriggerPrompts.onDnd4eRollAttack);
-    Hooks.on("preCreateChatMessage", message => TriggerPrompts.onPreCreateAttackMessage(message, socket));
+    Hooks.on("preCreateChatMessage", message => TriggerPrompts.onPreCreateRollMessage(message, socket));
+    Hooks.on("createChatMessage", message => TriggerPrompts.onCreateRollMessage(message, socket));
     Hooks.on("preUpdateToken", TriggerPrompts.onPreUpdateTokenPosition);
     Hooks.on("updateActor", TriggerPrompts.onUpdateActorHealth);
     Hooks.on("getActorSheetHeaderButtons", TriggerPrompts.onGetActorSheetHeaderButtons);

@@ -41,18 +41,44 @@ export class TriggerPrompts {
   }
 
   /**
-   * Completes a captured attack with its d20 result and sends it to the GM.
+   * Completes a captured attack from a DnD4e chat-roll message.
    *
    * @param {ChatMessage} message
    * @param {object} socket
    */
-  static onPreCreateAttackMessage(message, socket) {
+  static onPreCreateRollMessage(message, socket) {
     const attack = game.TriggerPrompts?.attackCapture.consume(message);
-    if (!attack) {
+    if (attack) {
+      socket.executeAsGM(TRIGGER_SOCKET_ACTION.EVALUATE_ATTACK, attack)
+        .catch(error => Logger.error("Failed to evaluate trigger attack", { error: error.message }));
+    }
+  }
+
+  /**
+   * Waits for the rolling client's Dice So Nice animation, when present, then
+   * evaluates a failed saving throw on the primary GM. The author check keeps
+   * every other client from creating duplicate prompts for the same message.
+   *
+   * @param {ChatMessage} message
+   * @param {object} socket
+   * @returns {Promise<void>}
+   */
+  static async onCreateRollMessage(message, socket) {
+    if (message.author?.id !== game.user?.id) {
       return;
     }
-    socket.executeAsGM(TRIGGER_SOCKET_ACTION.EVALUATE_ATTACK, attack)
-      .catch(error => Logger.error("Failed to evaluate trigger attack", { error: error.message }));
+    const savingThrow = TriggerPrompts.#captureSavingThrowFailure(message);
+    if (savingThrow) {
+      await TriggerPrompts.#waitForDiceSoNiceAnimation(message.id);
+      TriggerPrompts.#logSavingThrowDebug("Sending failed saving throw to GM", { socketAvailable: Boolean(socket), actor: savingThrow.actor });
+      if (!socket) {
+        Logger.error("Failed to evaluate trigger saving throw", { error: "SocketLib was not ready when the saving throw was created." });
+        return;
+      }
+      await socket.executeAsGM(TRIGGER_SOCKET_ACTION.EVALUATE_SAVING_THROW, savingThrow)
+        .then(() => TriggerPrompts.#logSavingThrowDebug("GM completed saving-throw evaluation", { actor: savingThrow.actor }))
+        .catch(error => Logger.error("Failed to evaluate trigger saving throw", { error: error.message }));
+    }
   }
 
   /**
@@ -149,6 +175,77 @@ export class TriggerPrompts {
    */
   async handleActiveDefenseOutcome(attackContext, outcome) {
     await this.dispatcher.evaluateActiveDefenseOutcome(attackContext, outcome);
+  }
+
+  /**
+   * SocketLib entry point that evaluates a saving-throw result on the GM.
+   *
+   * @param {object} savingThrowContext
+   * @returns {Promise<void>}
+   */
+  static async evaluateSavingThrowFromSocket(savingThrowContext) {
+    await game.TriggerPrompts?.dispatcher.evaluateSavingThrow(savingThrowContext);
+  }
+
+  /**
+   * Extracts a failed, non-death saving throw from DnD4e's chat-roll data.
+   *
+   * @param {ChatMessage} message
+   * @returns {{actor: {actorId: string|null, sceneId: string|null, tokenId: string|null}, outcome: "fail"}|null}
+   */
+  static #captureSavingThrowFailure(message) {
+    const rollData = message.flags?.dnd4e?.roll;
+    // DnD4e 0.9.3's Actor#rollSave builds an intended roll flag but does not
+    // pass it through d20Roll to the ChatMessage. Its localized flavor and
+    // d20 target are therefore the authoritative save-result seam.
+    const isSavingThrowMessage = rollData?.type === "save" || /^(?:rolling )?saving throw\b/i.test(message.flavor ?? "");
+    const isDeathSave = rollData?.isDeathSave === true || /^death saving throw\b/i.test(message.flavor ?? "");
+    if (!isSavingThrowMessage || isDeathSave || !message.rolls?.[0]) {
+      return null;
+    }
+    const roll = message.rolls[0];
+    const target = roll.dice?.find(die => die.faces === 20)?.options?.target;
+    if (!Number.isFinite(target) || roll.total >= target) {
+      return null;
+    }
+    return {
+      actor: {
+        actorId: rollData?.actorId ?? message.speaker?.actor ?? null,
+        sceneId: message.speaker?.scene ?? null,
+        tokenId: message.speaker?.token ?? null,
+      },
+      outcome: "fail",
+    };
+  }
+
+  /**
+   * Emits temporary, opt-in saving-throw diagnostics.
+   *
+   * @param {string} message
+   * @param {object} context
+   * @returns {void}
+   */
+  static #logSavingThrowDebug(message, context) {
+    if (game.settings?.settings) {
+      Logger.info(`[DEBUG-save-trigger] ${message}`, context);
+    }
+  }
+
+  /**
+   * Waits for Dice So Nice to complete this exact message's animation. A
+   * zero-delay turn lets Dice So Nice's create-message hook mark the message
+   * as animating before its completion API checks it.
+   *
+   * @param {string} messageId
+   * @returns {Promise<void>}
+   */
+  static async #waitForDiceSoNiceAnimation(messageId) {
+    const waitForAnimation = game.dice3d?.waitFor3DAnimationByMessageID;
+    if (!waitForAnimation) {
+      return;
+    }
+    await new Promise(resolve => setTimeout(resolve, 0));
+    await waitForAnimation.call(game.dice3d, messageId);
   }
 
   /** Clears a captured attack that Player Defense has replaced before creation. */

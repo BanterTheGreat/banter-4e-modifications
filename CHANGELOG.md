@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added configurable Trigger Prompts for a combatant failing a non-death saving throw.
+
 ## 2.0 - Foundry VTT 14 Compatibility
 
 - Updated the module manifest for Foundry VTT 14 and corrected its author metadata to the v13+ schema.

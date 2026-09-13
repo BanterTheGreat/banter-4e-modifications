@@ -2,6 +2,7 @@ import { TRIGGER_EVENT_TYPE, TRIGGER_ID } from "./constants.js";
 import { ActorTriggerConfiguration } from "./actor-trigger-configuration.js";
 import { findTriggerById, TRIGGERS } from "./trigger-registry.js";
 import { MarkOwnershipStore } from "../mark-ownership/mark-ownership-store.js";
+import { Logger } from "../../shared/logger.js";
 
 /**
  * Evaluates combat events on the primary GM and delivers eligible prompts.
@@ -44,6 +45,23 @@ export class CombatTriggerDispatcher {
       }
       await this.#evaluateAttackResultTriggers({ type: TRIGGER_EVENT_TYPE.ATTACK_RESULT, outcome, defenseType: targetData.defenseType, attackRange: attackContext.attackRange, attacker, target });
     }
+  }
+
+  /**
+   * Evaluates a completed saving throw that was captured from DnD4e chat.
+   *
+   * @param {{actor: {actorId: string|null, sceneId: string|null, tokenId: string|null}, outcome: "success"|"fail"}} savingThrowContext
+   * @returns {Promise<void>}
+   */
+  async evaluateSavingThrow(savingThrowContext) {
+    this.#logSavingThrowDebug("GM received saving-throw result", { actor: savingThrowContext.actor, outcome: savingThrowContext.outcome, canEvaluate: this.#canEvaluate() });
+    if (!this.#canEvaluate()) {
+      return;
+    }
+    await this.#evaluateTrigger(TRIGGER_ID.FAILS_SAVING_THROW, {
+      type: TRIGGER_EVENT_TYPE.SAVING_THROW_RESULT,
+      ...savingThrowContext,
+    });
   }
 
   /**
@@ -149,7 +167,11 @@ export class CombatTriggerDispatcher {
     if (!trigger) {
       return;
     }
-    for (const promptContext of trigger.evaluate(event, this.#createTriggerServices())) {
+    const promptContexts = trigger.evaluate(event, this.#createTriggerServices());
+    if (triggerId === TRIGGER_ID.FAILS_SAVING_THROW) {
+      this.#logSavingThrowDebug("Resolved saving-throw combatants", { promptActorIds: promptContexts.map(context => context.actor.id) });
+    }
+    for (const promptContext of promptContexts) {
       await this.#createPromptForContext(trigger, promptContext);
     }
   }
@@ -177,6 +199,9 @@ export class CombatTriggerDispatcher {
    */
   async #createPromptForContext(trigger, promptContext) {
     const assignments = ActorTriggerConfiguration.eligibleAssignmentsFor(promptContext.actor, trigger, promptContext);
+    if (trigger.id === TRIGGER_ID.FAILS_SAVING_THROW) {
+      this.#logSavingThrowDebug("Resolved saving-throw power assignments", { actorId: promptContext.actor.id, assignmentCount: assignments.length });
+    }
     if (!assignments.length) {
       return;
     }
@@ -198,7 +223,31 @@ export class CombatTriggerDispatcher {
    *
    * @returns {object}
    */
-  #createTriggerServices() { return { combatants: game.combat.combatants, getToken: (sceneId, tokenId) => this.#findSceneToken(sceneId, tokenId), markOwner: target => this.#findMarkOwner(target), areHostile: (left, right) => left.disposition !== right.disposition, areAllies: (left, right) => left.disposition === right.disposition, distanceSquares: (left, right) => this.#calculateDistanceSquares(left, right), movesAdjacent: (mover, destination, candidate) => this.#doesMovementPassAdjacentTo(mover, destination, candidate) }; }
+  #createTriggerServices() { return { combatants: game.combat.combatants, getToken: (sceneId, tokenId) => this.#findSceneToken(sceneId, tokenId), findCombatant: actor => this.#findCombatantForActor(actor), markOwner: target => this.#findMarkOwner(target), areHostile: (left, right) => left.disposition !== right.disposition, areAllies: (left, right) => left.disposition === right.disposition, distanceSquares: (left, right) => this.#calculateDistanceSquares(left, right), movesAdjacent: (mover, destination, candidate) => this.#doesMovementPassAdjacentTo(mover, destination, candidate) }; }
+
+  /**
+   * Finds a combatant for a roll's speaker, preferring its exact token.
+   *
+   * @param {{actorId: string|null, sceneId: string|null, tokenId: string|null}} actor
+   * @returns {Combatant|undefined}
+   */
+  #findCombatantForActor(actor) {
+    const tokenCombatant = actor.sceneId && actor.tokenId ? this.#findCombatantByToken(actor.sceneId, actor.tokenId) : null;
+    return tokenCombatant ?? game.combat?.combatants.find(combatant => combatant.actor?.id === actor.actorId);
+  }
+
+  /**
+   * Emits temporary, opt-in saving-throw diagnostics.
+   *
+   * @param {string} message
+   * @param {object} context
+   * @returns {void}
+   */
+  #logSavingThrowDebug(message, context) {
+    if (game.settings?.settings) {
+      Logger.info(`[DEBUG-save-trigger] ${message}`, context);
+    }
+  }
 
   /**
    * Resolves a marked token's owner when that owner is currently in combat.

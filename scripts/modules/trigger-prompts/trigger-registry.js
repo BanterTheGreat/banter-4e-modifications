@@ -9,6 +9,7 @@ import { MarkedCreatureBloodiedTrigger } from "./triggers/marked-creature-bloodi
 import { YouBecomeBloodiedTrigger } from "./triggers/you-become-bloodied-trigger.js";
 import { MeleeAttackHitsYouTrigger } from "./triggers/melee-attack-hits-you-trigger.js";
 import { MarkedCreatureMovesAdjacentTrigger } from "./triggers/marked-creature-moves-adjacent-trigger.js";
+import { FailsSavingThrowTrigger } from "./triggers/fails-saving-throw-trigger.js";
 
 /**
  * All trigger definitions supported by the submodule.
@@ -30,6 +31,7 @@ export const TRIGGERS = [
   new YouBecomeBloodiedTrigger(),
   new MeleeAttackHitsYouTrigger(),
   new MarkedCreatureMovesAdjacentTrigger(),
+  new FailsSavingThrowTrigger(),
 ];
 
 /**

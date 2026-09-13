@@ -109,3 +109,12 @@ test("a hostile hit with Weapon or Melee X range prompts the target", () => {
   }
   assert.deepEqual(trigger.evaluate({ ...attackEvent("hit"), attackRange: "Ranged 10" }, services), []);
 });
+
+test("a failed saving throw prompts the saving actor", () => {
+  const trigger = triggerById(TRIGGER_ID.FAILS_SAVING_THROW);
+  const savingThrow = { type: TRIGGER_EVENT_TYPE.SAVING_THROW_RESULT, outcome: "fail", actor: { actorId: target.actor.id, sceneId, tokenId: target.id } };
+  const savingThrowServices = { ...services, findCombatant: actor => actor.tokenId === target.id ? { actor: target.actor, name: target.name } : null };
+
+  assert.deepEqual(trigger.evaluate(savingThrow, savingThrowServices).map(prompt => prompt.actor.id), ["target-actor"]);
+  assert.deepEqual(trigger.evaluate({ ...savingThrow, outcome: "success" }, savingThrowServices), []);
+});

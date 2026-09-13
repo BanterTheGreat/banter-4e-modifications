@@ -16,6 +16,7 @@ export const TRIGGER_ID = Object.freeze({
   YOU_BECOME_BLOODIED: "you-become-bloodied",
   YOU_ARE_HIT_BY_MELEE_ATTACK: "you-are-hit-by-melee-attack",
   MARKED_CREATURE_SHIFTS_ADJACENT: "marked-creature-moves-adjacent",
+  FAILS_SAVING_THROW: "fails-saving-throw",
 });
 
 /**
@@ -26,6 +27,7 @@ export const TRIGGER_EVENT_TYPE = Object.freeze({
   MOVEMENT: "movement",
   ATTACK_RESULT: "attack-result",
   BLOODIED: "bloodied",
+  SAVING_THROW_RESULT: "saving-throw-result",
 });
 
 /** Actions exposed by a private trigger-prompt chat card's data attributes. */
@@ -49,6 +51,7 @@ export const TRIGGER_PROMPT_TIMEOUT_MS = 10_000;
  */
 export const TRIGGER_SOCKET_ACTION = Object.freeze({
   EVALUATE_ATTACK: "evaluateTriggerAttack",
+  EVALUATE_SAVING_THROW: "evaluateTriggerSavingThrow",
   CLAIM_PROMPT: "claimTriggerPrompt",
   EXPIRE_PROMPT: "expireTriggerPrompt",
 });
