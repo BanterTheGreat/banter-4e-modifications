@@ -134,7 +134,7 @@ export class TriggerPrompts {
    * Delegates rendered prompt-card controls to the chat module.
    *
    * @param {ChatMessage} message
-   * @param {JQuery} html
+   * @param {HTMLElement} html
    */
   static onRenderPromptMessage(message, html) {
     game.TriggerPrompts?.promptChat.bindPromptCard(message, html);

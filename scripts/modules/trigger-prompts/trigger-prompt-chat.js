@@ -44,7 +44,7 @@ export class TriggerPromptChat {
    * Binds controls only for a recipient of an unclaimed prompt message.
    *
    * @param {ChatMessage} message
-   * @param {JQuery} html
+   * @param {HTMLElement} html
    */
   bindPromptCard(message, html) {
     const prompt = message.flags?.[TRIGGER_PROMPT_FLAG];
@@ -52,18 +52,18 @@ export class TriggerPromptChat {
       return;
     }
     if (prompt.used) {
-      html.find("[data-trigger-prompt-action]").remove();
+      html.querySelectorAll("[data-trigger-prompt-action]").forEach(button => button.remove());
       return;
     }
     this.#startExpiryCountdown(html, prompt.expiresAt);
-    html.find(`[data-trigger-prompt-action='${TRIGGER_PROMPT_ACTION.USE}']`).on("click", async event => {
+    html.querySelectorAll(`[data-trigger-prompt-action='${TRIGGER_PROMPT_ACTION.USE}']`).forEach(button => button.addEventListener("click", async event => {
       event.preventDefault();
       await this.#claimAndUsePower(message, event.currentTarget.dataset.itemId ?? prompt.itemId);
-    });
-    html.find(`[data-trigger-prompt-action='${TRIGGER_PROMPT_ACTION.DISMISS}']`).on("click", async event => {
+    }));
+    html.querySelectorAll(`[data-trigger-prompt-action='${TRIGGER_PROMPT_ACTION.DISMISS}']`).forEach(button => button.addEventListener("click", async event => {
       event.preventDefault();
       await this.socket.executeAsGM("deleteMessage", message.id);
-    });
+    }));
   }
 
   /**
@@ -87,7 +87,7 @@ export class TriggerPromptChat {
     }
 
     if (item.type === "power" && actor.usePower) {
-      await actor.usePower(item, { configureDialog: false });
+      await actor.usePower(item, { configureDialog: true });
       return;
     }
 
@@ -97,7 +97,7 @@ export class TriggerPromptChat {
   /**
    * Displays the prompt's remaining response time in the Ignore button.
    *
-   * @param {JQuery} html
+   * @param {HTMLElement} html
    *   Rendered chat-card element.
    * @param {number} expiresAt
    *   Epoch timestamp at which the prompt expires.
@@ -106,10 +106,13 @@ export class TriggerPromptChat {
     if (!Number.isFinite(expiresAt)) {
       return;
     }
-    const dismiss = html.find(`[data-trigger-prompt-action='${TRIGGER_PROMPT_ACTION.DISMISS}']`);
+    const dismiss = html.querySelector(`[data-trigger-prompt-action='${TRIGGER_PROMPT_ACTION.DISMISS}']`);
+    if (!dismiss) {
+      return;
+    }
     const update = () => {
       const seconds = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
-      dismiss.text(`${TRIGGER_PROMPT_UI.DISMISS_LABEL} (${seconds})`);
+      dismiss.textContent = `${TRIGGER_PROMPT_UI.DISMISS_LABEL} (${seconds})`;
       return seconds;
     };
     if (update() === 0) {

@@ -36,11 +36,12 @@ export class ActorTriggerConfiguration {
       if (!ActorTriggerConfiguration.isOpportunityAttackPromptEnabled(actor)) {
         return [];
       }
-      return actor.items.filter(item => ActorTriggerConfiguration.#isOpportunityAttackPower(actor, item))
+      return actor.items.filter(item => ActorTriggerConfiguration.#isOpportunityAttackPower(actor, item) && ActorTriggerConfiguration.#hasAvailableUses(item))
         .map(item => ({ id: `opportunity:${item.id}`, itemId: item.id, triggerId: trigger.id, parameters: {}, item }));
     }
     return ActorTriggerConfiguration.configuredAssignments(actor)
       .filter(assignment => assignment.triggerId === trigger.id)
+      .filter(assignment => ActorTriggerConfiguration.#hasAvailableUses(assignment.item))
       .filter(assignment => ActorTriggerConfiguration.#isAssignmentEligibleForEvent(assignment, trigger, triggerEvent));
   }
 
@@ -110,10 +111,17 @@ export class ActorTriggerConfiguration {
       <h3>Power trigger assignments</h3>
       <div class="trigger-prompts-config__summary">${summary || `<p class="hint">No powers have trigger assignments.</p>`}</div>
     </form>`;
-    new Dialog({
-      title: `${actor.name}: Trigger prompts`, content,
-      buttons: { save: { label: "Save", callback: html => ActorTriggerConfiguration.#saveActorOptions(actor, html.find("form")[0]) } }, default: "save",
-    }, { width: 640 }).render(true);
+    new foundry.applications.api.DialogV2({
+      window: { title: `${actor.name}: Trigger prompts` },
+      content,
+      position: { width: 640 },
+      buttons: [{
+        action: "save",
+        label: "Save",
+        default: true,
+        callback: (event, button, dialog) => ActorTriggerConfiguration.#saveActorOptions(actor, dialog.element.querySelector("form")),
+      }],
+    }).render({ force: true });
   }
 
   /**
@@ -135,10 +143,17 @@ export class ActorTriggerConfiguration {
     const reference = triggerText
       ? `<p class="trigger-prompts-config__reference"><strong>Power trigger:</strong> ${foundry.utils.escapeHTML(triggerText)}</p>`
       : `<p class="hint">This power has no trigger line in its DnD4e data.</p>`;
-    new Dialog({
-      title: `${item.name}: Trigger prompts`, content: `<form class="${TRIGGER_PROMPT_UI.CONFIG_CLASS}">${reference}${rows}</form>`,
-      buttons: { save: { label: "Save", callback: html => ActorTriggerConfiguration.#replacePowerAssignments(item, html.find("form")[0]) } }, default: "save",
-    }, { width: 640 }).render(true);
+    new foundry.applications.api.DialogV2({
+      window: { title: `${item.name}: Trigger prompts` },
+      content: `<form class="${TRIGGER_PROMPT_UI.CONFIG_CLASS}">${reference}${rows}</form>`,
+      position: { width: 640 },
+      buttons: [{
+        action: "save",
+        label: "Save",
+        default: true,
+        callback: (event, button, dialog) => ActorTriggerConfiguration.#replacePowerAssignments(item, dialog.element.querySelector("form")),
+      }],
+    }).render({ force: true });
   }
 
   /**
@@ -310,6 +325,19 @@ export class ActorTriggerConfiguration {
       return false;
     }
     return item.system?.attack?.isOpp || (actor.type === "NPC" && item.system?.attack?.isBasic);
+  }
+
+  /**
+   * Determines whether a power with DnD4e limited uses still has at least one
+   * use. A period alone is not limiting unless its prepared maximum is positive.
+   *
+   * @param {Item} item
+   * @returns {boolean}
+   *   Whether the power may be offered in a trigger prompt.
+   */
+  static #hasAvailableUses(item) {
+    const uses = item.system?.uses;
+    return !uses?.per || !(item.preparedMaxUses > 0) || Number(uses.value) > 0;
   }
 
   /**

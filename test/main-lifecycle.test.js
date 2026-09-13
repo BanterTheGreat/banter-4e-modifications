@@ -29,7 +29,7 @@ test("module entry point registers settings, sockets, and enabled feature hooks"
   assert.equal(handlers.once.get("socketlib.ready")?.length, 1);
   assert.equal(handlers.on.get("dnd4e.rollAttack")?.length, 2);
   assert.equal(handlers.on.get("preCreateChatMessage")?.length, 2);
-  assert.equal(handlers.on.get("renderChatMessage")?.length, 2);
+  assert.equal(handlers.on.get("renderChatMessageHTML")?.length, 2);
   assert.equal(handlers.on.get("createActiveEffect")?.length, 1);
   assert.equal(handlers.on.get("deleteCombat")?.length, 1);
 });

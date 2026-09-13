@@ -80,7 +80,8 @@ Hooks.on("ready", () => {
   }
 });
 
-Hooks.on("init", Dnd4eSystemCustomizations.replaceConditionList);
+// Should not be needed anymore with the V14 version.
+// Hooks.on("init", Dnd4eSystemCustomizations.replaceConditionList);
 Hooks.on("init", Dnd4eSystemCustomizations.replaceSkills);
 
 // Mark ownership
@@ -111,7 +112,7 @@ Hooks.on("i18nInit", () => {
     Hooks.on("ready", () => game.PlayerDefense = new PlayerDefense());
     Hooks.on("dnd4e.rollAttack", PlayerDefense.OnRollAttack);
     Hooks.on("preCreateChatMessage", PlayerDefense.OnPowerChatMessage);
-    Hooks.on("renderChatMessage", message => PlayerDefense.onRenderDefenseMessage(message, socket));
+    Hooks.on("renderChatMessageHTML", message => PlayerDefense.onRenderDefenseMessage(message, socket));
   }
 });
 
@@ -128,6 +129,6 @@ Hooks.on("i18nInit", () => {
     Hooks.on("getHeaderControlsApplicationV2", TriggerPrompts.onGetHeaderControlsApplicationV2);
     Hooks.on("getHeaderControlsApplicationV2", PowerTriggerConfiguration.onGetHeaderControlsApplicationV2);
     Hooks.on("deleteItem", PowerTriggerConfiguration.onDeleteItem);
-    Hooks.on("renderChatMessage", (message, html) => TriggerPrompts.onRenderPromptMessage(message, html));
+    Hooks.on("renderChatMessageHTML", (message, html) => TriggerPrompts.onRenderPromptMessage(message, html));
   }
 });

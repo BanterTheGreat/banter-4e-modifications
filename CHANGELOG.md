@@ -1,8 +1,16 @@
 # Changelog
 
+## 2.0 - Foundry VTT 14 Compatibility
+
+- Updated the module manifest for Foundry VTT 14 and corrected its author metadata to the v13+ schema.
+- Replaced deprecated chat-message render hooks with `renderChatMessageHTML` and native HTML control binding.
+- Migrated Player Defense and Trigger Prompt configuration dialogs to the Application V2 framework.
+
 ## 1.4 - Trigger Prompts and Test Coverage
 
 - Added configurable Trigger Prompts for becoming bloodied and for being hit by an enemy Weapon or Melee X attack, including Player Defense outcomes.
+- Trigger prompts now omit exhausted encounter and daily powers, while continuing to offer other available powers assigned to the same trigger.
+- Choosing a prompted DnD4e power now consumes its available use through the system's normal power-use workflow.
 - Added automated coverage for Foundry lifecycle registration, DnD4e customizations, Player Defense resolution, Trigger Prompt dispatch, and Mark Ownership persistence.
 - Added CI-ready test and coverage commands with minimum line and branch coverage thresholds.
 

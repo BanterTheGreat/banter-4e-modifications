@@ -285,7 +285,7 @@ export class PlayerDefense {
   }
 
     /**
-     * Foundry's renderChatMessage hook; makes the assigned client's single dialog attempt.
+     * Foundry's renderChatMessageHTML hook; makes the assigned client's single dialog attempt.
      *
      * @param {ChatMessage} message
      * @param {object} socket
@@ -328,12 +328,16 @@ export class PlayerDefense {
      */
   static #showDefenseDialog(message, target, socket) {
     const dialog = createDefenseDialogPayload({ attackName: message.flags.playerDefense.attackName, ...target });
-    new Dialog({
-            title: dialog.title,
-            content: dialog.content,
-            buttons: { defend: { label: dialog.defendLabel, callback: () => PlayerDefense.#defend(message, target, socket) } },
-      default: "defend",
-    }).render(true);
+    new foundry.applications.api.DialogV2({
+      window: { title: dialog.title },
+      content: dialog.content,
+      buttons: [{
+        action: "defend",
+        label: dialog.defendLabel,
+        default: true,
+        callback: () => PlayerDefense.#defend(message, target, socket),
+      }],
+    }).render({ force: true });
   }
 
     /**

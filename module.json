@@ -2,13 +2,13 @@
 	"id": "banter-4e-modifications",
 	"title": "Banters 4e Modifications",
 	"description": "Just some changes to the DND4e system",
-	"version": "1.4",
-	"authors": ["Banter"],
+	"version": "2.0",
+	"authors": [{ "name": "Banter" }],
 	"styles": ["styles/main.css"],
 	"esmodules": ["scripts/main.js"],
 	"socket": true,
 	"compatibility": {
 		"minimum": "13",
-		"verified": "13"
+		"verified": "14"
 	}
 }
