@@ -324,7 +324,27 @@ export class ActorTriggerConfiguration {
     if (item.type !== "power") {
       return false;
     }
-    return item.system?.attack?.isOpp || (actor.type === "NPC" && item.system?.attack?.isBasic);
+    return item.system?.attack?.isOpp
+      || ActorTriggerConfiguration.#hasOpportunityAttackRollMode(item)
+      || (actor.type === "NPC" && item.system?.attack?.isBasic);
+  }
+
+  /**
+   * Determines whether one of a power's alternate roll modes is an
+   * opportunity attack.
+   *
+   * Roll-mode data may be stored as an array or keyed object, depending on
+   * the DnD4e data source that created the power.
+   *
+   * @param {Item} item
+   *   Power whose alternate roll modes should be inspected.
+   * @returns {boolean}
+   *   Whether an alternate roll mode marks this power as an opportunity attack.
+   */
+  static #hasOpportunityAttackRollMode(item) {
+    const rollModes = item.system?.rollModes;
+    const modes = Array.isArray(rollModes) ? rollModes : Object.values(rollModes ?? {});
+    return modes.some(mode => mode?.opportunityAttack === true);
   }
 
   /**
