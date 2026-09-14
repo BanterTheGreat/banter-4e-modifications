@@ -42,3 +42,18 @@ test("Trigger configuration retains an unbounded power whose legacy use value is
     [available.id],
   );
 });
+
+test("Opportunity attack prompts include explicitly marked and variant-mode powers only", () => {
+  const explicitOpportunityAttack = { id: "explicit", type: "power", system: { attack: { isOpp: true } } };
+  const variantOpportunityAttack = { id: "variant", type: "power", system: { attack: { isOpp: false }, rollModes: [{ opportunityAttack: true }] } };
+  const nonOpportunityPower = { id: "ordinary", type: "power", system: { attack: { isOpp: false }, rollModes: [{ opportunityAttack: false }] } };
+  const actor = {
+    type: "PC",
+    items: [explicitOpportunityAttack, variantOpportunityAttack, nonOpportunityPower],
+    getFlag: () => ({ assignments: [] }),
+  };
+
+  const assignments = ActorTriggerConfiguration.eligibleAssignmentsFor(actor, findTriggerById(TRIGGER_ID.OPPORTUNITY_ATTACK));
+
+  assert.deepEqual(assignments.map(assignment => assignment.itemId), [explicitOpportunityAttack.id, variantOpportunityAttack.id]);
+});
