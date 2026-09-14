@@ -5,8 +5,9 @@ import { MarkOwnership } from "./modules/mark-ownership/mark-ownership.js";
 import { MarkOwnershipStore } from "./modules/mark-ownership/mark-ownership-store.js";
 import { TriggerPrompts } from "./modules/trigger-prompts/trigger-prompts.js";
 import { PowerTriggerConfiguration } from "./modules/trigger-prompts/power-trigger-configuration.js";
+import { OpportunityAttackChatActions } from "./modules/opportunity-attack-chat/opportunity-attack-chat-actions.js";
 import { TRIGGER_SOCKET_ACTION } from "./modules/trigger-prompts/constants.js";
-import { MODULE_NAME, ENABLE_ACTIVE_DEFENSE, ENABLE_DEBUG_LOGGING, ENABLE_MARK_OWNERSHIP, ENABLE_TRIGGER_PROMPTS } from "./shared/globals.js";
+import { MODULE_NAME, ENABLE_ACTIVE_DEFENSE, ENABLE_DEBUG_LOGGING, ENABLE_MARK_OWNERSHIP, ENABLE_OPPORTUNITY_ATTACK_CHAT_ACTIONS, ENABLE_TRIGGER_PROMPTS } from "./shared/globals.js";
 
 let socket;
 
@@ -25,6 +26,16 @@ Hooks.on("i18nInit", () => {
   game.settings.register(MODULE_NAME, ENABLE_TRIGGER_PROMPTS, {
     name: "Enable trigger prompts",
     description: "Posts private combat prompts when configured actor triggers may occur.",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+    requiresReload: true,
+  });
+
+  game.settings.register(MODULE_NAME, ENABLE_OPPORTUNITY_ATTACK_CHAT_ACTIONS, {
+    name: "Enable Opportunity Attack chat actions",
+    description: "Adds Charge and Opportunity Attack variant actions to eligible DnD4e power chat cards.",
     scope: "world",
     config: true,
     type: Boolean,
@@ -84,6 +95,15 @@ Hooks.on("ready", () => {
 // Should not be needed anymore with the V14 version.
 // Hooks.on("init", Dnd4eSystemCustomizations.replaceConditionList);
 Hooks.on("init", Dnd4eSystemCustomizations.replaceSkills);
+
+// Opportunity Attack chat actions
+
+Hooks.on("i18nInit", () => {
+  if (game.settings.get(MODULE_NAME, ENABLE_OPPORTUNITY_ATTACK_CHAT_ACTIONS)) {
+    Hooks.on("renderChatMessageHTML", OpportunityAttackChatActions.onRenderChatMessage);
+    Hooks.on("renderChatMessage", OpportunityAttackChatActions.onRenderChatMessage);
+  }
+});
 
 // Mark ownership
 

@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added configurable Trigger Prompts for a combatant failing a non-death saving throw.
+- Added an optional world setting for Charge and Opportunity Attack variant buttons on eligible DnD4e power chat cards, including NPC Basic Attacks.
 - Opportunity Attack prompts now include powers with an alternate roll mode marked as an opportunity attack.
 
 ## 2.0 - Foundry VTT 14 Compatibility
