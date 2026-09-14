@@ -325,6 +325,7 @@ export class ActorTriggerConfiguration {
       return false;
     }
     return item.system?.attack?.isOpp
+      || item.system?.attack?.canOpp
       || ActorTriggerConfiguration.#hasOpportunityAttackRollMode(item)
       || (actor.type === "NPC" && item.system?.attack?.isBasic);
   }
