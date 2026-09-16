@@ -39,3 +39,14 @@ Foundry VTT v14 module for DnD4e homebrew automation: simplified conditions and 
 ## Debugging
 
 - Heavily prefer adding temporary debug logging, since you can't directly control foundry.
+
+## HUD visual style guide
+
+- Treat the actor HUD as a compact, dark-fantasy game panel: near-black charcoal surfaces, warm parchment text, aged-brass borders, and restrained shadows.
+- Reserve saturated semantic colour for game state: crimson for health, green for at-will powers, red for encounter powers, slate for daily powers, gold for items and selected controls, and cool blue for temporary HP.
+- Build hierarchy through surface contrast, thin warm dividers, compact uppercase labels, and the `--font-h1` display face for character names and important values; do not add decorative chrome without an information purpose.
+- Prefer subtle gradients, inset highlights, and small border-radius values (about `0.25rem` to `0.65rem`) over flat cards, oversized rounding, or glossy effects.
+- Keep density high but readable: use short labels, ellipsis for one-line lists, grouped sections, and a scrolling workspace instead of expanding the panel beyond its established footprint.
+- Make interactive states unmistakable but restrained: warm borders/highlights, a slight brightness lift, and a small translate transform; keep the visible keyboard focus ring.
+- Preserve accessibility: maintain strong text contrast, never communicate state by colour alone, and provide labels or titles for icon-only controls.
+- Extend existing actor-display CSS classes and colour vocabulary before introducing new visual tokens, so tabs, cards, tooltips, and quick actions remain one coherent HUD.
