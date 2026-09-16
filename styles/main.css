@@ -36,9 +36,9 @@
 }
 
 .player-defense-dialog__check {
+    position: relative;
     display: grid;
     gap: 0.25rem;
-    margin-bottom: 0.75rem;
     padding: 0.8rem;
     text-align: center;
     border: 1px solid #876936;
@@ -62,27 +62,47 @@
     text-shadow: 0 0.1rem 0.4rem #000;
 }
 
-.player-defense-dialog__check > span:last-child {
+.player-defense-dialog__check-instruction {
     color: #cbbda6;
     font-size: 0.75rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
+.player-defense-dialog__disclosure-icon {
+    position: absolute;
+    right: 0.7rem;
+    bottom: 0.7rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-right: 2px solid #e1bc76;
+    border-bottom: 2px solid #e1bc76;
+    transform: rotate(45deg);
+    transition: transform 150ms ease;
+}
+
 .player-defense-dialog__breakdown {
     margin-bottom: 0.75rem;
     overflow: hidden;
-    border: 1px solid #5d5143;
     border-radius: 0.3rem;
-    background: #101015;
 }
 
 .player-defense-dialog__breakdown summary {
-    padding: 0.65rem 0.7rem;
     cursor: pointer;
-    color: #ead9bd;
-    font-size: 0.82rem;
-    font-weight: 700;
+    list-style: none;
+}
+
+.player-defense-dialog__breakdown summary::-webkit-details-marker {
+    display: none;
+}
+
+.player-defense-dialog__breakdown[open] .player-defense-dialog__check {
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.player-defense-dialog__breakdown[open] .player-defense-dialog__disclosure-icon {
+    transform: rotate(225deg);
 }
 
 .player-defense-dialog__breakdown summary:focus-visible {

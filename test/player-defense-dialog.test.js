@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createDefenseDialogPayload } from "../scripts/modules/player-defense/player-defense-workflow.js";
 
-test("defense dialog presents the defense check with an expandable math breakdown", () => {
+test("defense dialog expands the math breakdown when its DC box is clicked", () => {
   const payload = createDefenseDialogPayload({
     attackName: "Bite",
     attackerName: "Badger",
@@ -20,7 +20,8 @@ test("defense dialog presents the defense check with an expandable math breakdow
   assert.match(payload.content, /Armor check/);
   assert.match(payload.content, /DC 199/);
   assert.match(payload.content, /Roll 1d20 \+ 16 to defend/);
-  assert.match(payload.content, /Show defense and DC breakdown/);
+  assert.match(payload.content, /<details class="player-defense-dialog__breakdown">\s*<summary class="player-defense-dialog__check" aria-label="Show defense and DC breakdown">/);
+  assert.match(payload.content, /player-defense-dialog__disclosure-icon" aria-hidden="true"/);
   assert.match(payload.content, /Your AC<\/span><b>26<\/b>/);
   assert.match(payload.content, /Defense bonus<\/span><b>\+16<\/b>/);
   assert.match(payload.content, /Attack modifier<\/span><b>\+187<\/b>/);

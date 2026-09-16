@@ -23,13 +23,13 @@ export function createDefenseDialogPayload({ attackName, attackerName, defenseSt
     title: `${attackerName} - ${attackName}`,
     content: `
       <section class="player-defense-dialog">
-        <div class="player-defense-dialog__check">
-          <span class="player-defense-dialog__eyebrow">${defenseCheckName} check</span>
-          <strong>DC ${rollDC}</strong>
-          <span>Roll 1d20 + ${defenseMod} to defend</span>
-        </div>
         <details class="player-defense-dialog__breakdown">
-          <summary>Show defense and DC breakdown</summary>
+          <summary class="player-defense-dialog__check" aria-label="Show defense and DC breakdown">
+            <span class="player-defense-dialog__eyebrow">${defenseCheckName} check</span>
+            <strong>DC ${rollDC}</strong>
+            <span class="player-defense-dialog__check-instruction">Roll 1d20 + ${defenseMod} to defend</span>
+            <span class="player-defense-dialog__disclosure-icon" aria-hidden="true"></span>
+          </summary>
           <div class="player-defense-dialog__math-section">
             <div><span>Your ${defenseStat}</span><b>${defenseValue}</b></div>
             <div><span>Base defense</span><b>-${baseDefense}</b></div>
