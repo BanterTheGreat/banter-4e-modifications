@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Removed the Mark Ownership feature, including its owner-selection prompt and canvas relationship arrows.
+- Mark-based Trigger Prompts now resolve the marker from DnD4e's native `actor.system.marker` field.
 - Added configurable Trigger Prompts for a combatant failing a non-death saving throw.
 - Added an optional world setting for Charge and Opportunity Attack variant buttons on eligible DnD4e power chat cards, including NPC Basic Attacks.
 - Opportunity Attack prompts now include powers with an alternate roll mode marked as an opportunity attack.
